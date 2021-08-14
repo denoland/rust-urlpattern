@@ -261,18 +261,18 @@ where
     let mut regexp_or_wildcard_token =
       parser.try_consume_regexp_or_wildcard_token(name_token);
     if name_token.is_some() || regexp_or_wildcard_token.is_some() {
-      let mut prefix = String::new();
+      let mut prefix = "";
       if let Some(char_token) = char_token {
-        prefix = char_token.value.to_owned(); // TODO: do not own
+        prefix = &char_token.value;
       }
       if !prefix.is_empty() && prefix != options.prefix_code_point {
-        parser.pending_fixed_value.push_str(&prefix);
-        prefix = String::new();
+        parser.pending_fixed_value.push_str(prefix);
+        prefix = "";
       }
       parser.maybe_add_part_from_pending_fixed_value();
       let modifier_token = parser.try_consume_modifier_token();
       parser.add_part(
-        &prefix,
+        prefix,
         name_token,
         regexp_or_wildcard_token,
         "",
