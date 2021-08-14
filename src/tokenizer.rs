@@ -6,7 +6,7 @@ use crate::ParseError;
 // Ref: https://wicg.github.io/urlpattern/#tokenizing
 
 // Ref: https://wicg.github.io/urlpattern/#token-type
-enum TokenType {
+pub enum TokenType {
   Open,
   Close,
   Regexp,
@@ -20,14 +20,14 @@ enum TokenType {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#token
-struct Token {
-  kind: TokenType,
+pub struct Token {
+  pub kind: TokenType,
   index: usize,
-  value: String,
+  pub value: String,
 }
 
 // Ref: https://wicg.github.io/urlpattern/#tokenize-policy
-enum TokenizePolicy {
+pub enum TokenizePolicy {
   Strict,
   Lenient,
 }
