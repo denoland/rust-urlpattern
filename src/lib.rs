@@ -2,7 +2,7 @@
 
 use derive_more::Display;
 
-/// An error that occured during parsing.
+/// An error that occurred during parsing.
 #[derive(Debug, Display)]
 pub enum ParseError {}
 
