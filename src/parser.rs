@@ -198,7 +198,7 @@ where
 
     let mut name = String::new();
     if let Some(name_token) = name_token {
-      name = name_token.value.to_owned();
+      name = name_token.value;
     } else if regexp_or_wildcard_token.is_some() {
       name = self.next_numeric_name.to_string();
       self.next_numeric_name += 1;
