@@ -1,10 +1,14 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+mod tokenizer;
+
 use derive_more::Display;
 
 /// An error that occured during parsing.
 #[derive(Debug, Display)]
-pub enum ParseError {}
+pub enum ParseError {
+  Tokenize,
+}
 
 impl std::error::Error for ParseError {}
 
