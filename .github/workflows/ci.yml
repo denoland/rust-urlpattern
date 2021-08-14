@@ -29,13 +29,13 @@ jobs:
         run: rustfmt --check src/lib.rs
 
       - name: Build
-        run: cargo build --locked --release --all-targets --all-features
+        run: cargo build --release --all-targets --all-features
 
       - name: Test
-        run: cargo test --locked --release --all-targets --all-features
+        run: cargo test --release --all-targets --all-features
 
       - name: Lint
-        run: cargo clippy --all-targets --all-features --release --locked -- -D clippy::all
+        run: cargo clippy --all-targets --all-features --release -- -D clippy::all
 
       - name: Publish
         if: |
