@@ -1,5 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+mod component;
 mod component_callbacks;
 mod parser;
 mod tokenizer;
@@ -11,6 +12,7 @@ use derive_more::Display;
 pub enum ParseError {
   Tokenize,
   Url(url::ParseError),
+  RegEx(regex::Error),
 }
 
 impl std::error::Error for ParseError {}

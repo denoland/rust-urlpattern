@@ -1,3 +1,5 @@
+// Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+
 use crate::ParseError;
 
 // https://wicg.github.io/urlpattern/#canon-encoding-callbacks
@@ -8,7 +10,7 @@ use crate::ParseError;
 pub fn canonicalize_protocol(value: &str) -> Result<String, ParseError> {
   url::Url::parse(&format!("{}://dummy.test", value))
     .map(|url| url.scheme().to_owned())
-    .map_err(|e| ParseError::Url(e))
+    .map_err(ParseError::Url)
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-username

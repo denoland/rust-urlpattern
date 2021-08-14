@@ -5,24 +5,25 @@ use crate::tokenizer::TokenType;
 use crate::ParseError;
 
 // Ref: https://wicg.github.io/urlpattern/#full-wildcard-regexp-value
-const FULL_WILDCARD_REGEXP_VALUE: &str = ".*";
+pub const FULL_WILDCARD_REGEXP_VALUE: &str = ".*";
 
 // Ref: https://wicg.github.io/urlpattern/#options-header
-struct Options {
+pub struct Options {
   delimiter_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
-  prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
+  pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
 }
 
 impl Options {
   // Ref: https://wicg.github.io/urlpattern/#generate-a-segment-wildcard-regexp
   // TODO: inline?
-  fn generate_segment_wildcard_regexp(&self) -> String {
+  pub fn generate_segment_wildcard_regexp(&self) -> String {
     format!("[^{}]+?", escape_regexp_string(&self.delimiter_code_point))
   }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#part-type
-enum PartType {
+#[derive(Eq, PartialEq)]
+pub enum PartType {
   FixedText,
   Regexp,
   SegmentWildcard,
@@ -31,26 +32,38 @@ enum PartType {
 
 // Ref: https://wicg.github.io/urlpattern/#part-modifier
 #[derive(Eq, PartialEq)]
-enum PartModifier {
+pub enum PartModifier {
   None,
   Optional,
   ZeroOrMore,
   OneOrMore,
 }
 
+impl std::fmt::Display for PartModifier {
+  // Ref: https://wicg.github.io/urlpattern/#convert-a-modifier-to-a-string
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      PartModifier::None => "",
+      PartModifier::Optional => "?",
+      PartModifier::ZeroOrMore => "*",
+      PartModifier::OneOrMore => "+",
+    })
+  }
+}
+
 // Ref: https://wicg.github.io/urlpattern/#part
-struct Part {
-  kind: PartType,
-  value: String,
-  modifier: PartModifier,
-  name: String,
-  prefix: String,
-  suffix: String,
+pub struct Part {
+  pub kind: PartType,
+  pub value: String,
+  pub modifier: PartModifier,
+  pub name: String,
+  pub prefix: String,
+  pub suffix: String,
 }
 
 impl Part {
   fn new(kind: PartType, value: String, modifier: PartModifier) -> Self {
-    Self {
+    Part {
       kind,
       value,
       modifier,
@@ -244,9 +257,9 @@ where
 }
 
 // Ref: https://wicg.github.io/urlpattern/#parse-a-pattern-string
-fn parse_pattern_string<F>(
+pub fn parse_pattern_string<F>(
   input: String,
-  options: Options,
+  options: &Options,
   encoding_callback: F,
 ) -> Result<Vec<Part>, ParseError>
 where
@@ -324,7 +337,7 @@ where
 
 // Ref: https://wicg.github.io/urlpattern/#escape-a-regexp-string
 // TODO: use fold?
-fn escape_regexp_string(input: &str) -> String {
+pub fn escape_regexp_string(input: &str) -> String {
   assert!(input.is_ascii());
   let mut result = String::new();
   for char in input.chars() {
