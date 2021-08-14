@@ -30,6 +30,7 @@ enum PartType {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#part-modifier
+#[derive(Eq, PartialEq)]
 enum PartModifier {
   None,
   Optional,
@@ -63,7 +64,7 @@ impl Part {
 // Ref: https://wicg.github.io/urlpattern/#pattern-parser
 struct PatternParser<F>
 where
-  F: Fn(&str) -> Result<String, ()>,
+  F: Fn(&str) -> Result<String, ParseError>,
 {
   token_list: Vec<Token>,
   encoding_callback: F,
@@ -76,7 +77,7 @@ where
 
 impl<F> PatternParser<F>
 where
-  F: Fn(&str) -> Result<String, ()>,
+  F: Fn(&str) -> Result<String, ParseError>,
 {
   // Ref: https://wicg.github.io/urlpattern/#try-to-consume-a-token
   fn try_consume_token(&mut self, kind: TokenType) -> Option<&Token> {
@@ -118,17 +119,21 @@ where
 
   // Ref: https://wicg.github.io/urlpattern/#maybe-add-a-part-from-the-pending-fixed-value
   // TODO: inline?
-  fn maybe_add_part_from_pending_fixed_value(&mut self) {
+  fn maybe_add_part_from_pending_fixed_value(
+    &mut self,
+  ) -> Result<(), ParseError> {
     if self.pending_fixed_value.is_empty() {
-      return;
+      return Ok(());
     }
-    let encoded_value = self.encoding_callback(&self.pending_fixed_value);
+    let encoded_value = (self.encoding_callback)(&self.pending_fixed_value)?;
     self.pending_fixed_value = String::new();
     self.part_list.push(Part::new(
       PartType::FixedText,
       encoded_value,
       PartModifier::None,
     ));
+
+    Ok(())
   }
 
   // Ref: https://wicg.github.io/urlpattern/#add-a-part
@@ -139,7 +144,7 @@ where
     regexp_or_wildcard_token: Option<&Token>,
     suffix: &str,
     modifier_token: Option<&Token>,
-  ) {
+  ) -> Result<(), ParseError> {
     let mut modifier = PartModifier::None;
     if let Some(modifier_token) = modifier_token {
       modifier = match modifier_token.value.as_ref() {
@@ -154,21 +159,21 @@ where
       && modifier == PartModifier::None
     {
       self.pending_fixed_value.push_str(prefix);
-      return;
+      return Ok(());
     }
-    self.maybe_add_part_from_pending_fixed_value();
+    self.maybe_add_part_from_pending_fixed_value()?;
     if name_token.is_none() && regexp_or_wildcard_token.is_none() {
       assert!(suffix.is_empty());
       if prefix.is_empty() {
-        return;
+        return Ok(());
       }
-      let encoded_value = self.encoding_callback(prefix);
+      let encoded_value = (self.encoding_callback)(prefix)?;
       self.part_list.push(Part::new(
         PartType::FixedText,
         encoded_value,
         modifier,
       ));
-      return;
+      return Ok(());
     }
 
     let mut regexp_value: &str = if regexp_or_wildcard_token.is_none() {
@@ -195,8 +200,8 @@ where
       name = self.next_numeric_name.to_string();
       self.next_numeric_name += 1;
     }
-    let encoded_prefix = self.encoding_callback(prefix);
-    let encoded_suffix = self.encoding_callback(suffix);
+    let encoded_prefix = (self.encoding_callback)(prefix)?;
+    let encoded_suffix = (self.encoding_callback)(suffix)?;
     self.part_list.push(Part {
       kind,
       value: regexp_value.to_owned(),
@@ -205,6 +210,8 @@ where
       prefix: encoded_prefix,
       suffix: encoded_suffix,
     });
+
+    Ok(())
   }
 
   // Ref: https://wicg.github.io/urlpattern/#consume-text
@@ -240,7 +247,7 @@ fn parse_pattern_string<F>(
   encoding_callback: F,
 ) -> Result<Vec<Part>, ParseError>
 where
-  F: Fn(&str) -> Result<String, ()>,
+  F: Fn(&str) -> Result<String, ParseError>,
 {
   let mut parser = PatternParser {
     token_list: crate::tokenizer::tokenize(
@@ -269,7 +276,7 @@ where
         parser.pending_fixed_value.push_str(prefix);
         prefix = "";
       }
-      parser.maybe_add_part_from_pending_fixed_value();
+      parser.maybe_add_part_from_pending_fixed_value()?;
       let modifier_token = parser.try_consume_modifier_token();
       parser.add_part(
         prefix,
@@ -277,7 +284,7 @@ where
         regexp_or_wildcard_token,
         "",
         modifier_token,
-      );
+      )?;
       continue;
     }
     let mut fixed_token = char_token;
@@ -303,9 +310,9 @@ where
         regexp_or_wildcard_token,
         &suffix,
         modifier_token,
-      );
+      )?;
     }
-    parser.maybe_add_part_from_pending_fixed_value();
+    parser.maybe_add_part_from_pending_fixed_value()?;
     parser.consume_required_token(TokenType::End)?;
   }
 

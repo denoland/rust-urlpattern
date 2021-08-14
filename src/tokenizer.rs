@@ -6,6 +6,7 @@ use crate::ParseError;
 // Ref: https://wicg.github.io/urlpattern/#tokenizing
 
 // Ref: https://wicg.github.io/urlpattern/#token-type
+#[derive(Eq, PartialEq)]
 pub enum TokenType {
   Open,
   Close,
@@ -27,6 +28,7 @@ pub struct Token {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#tokenize-policy
+#[derive(Eq, PartialEq)]
 pub enum TokenizePolicy {
   Strict,
   Lenient,
@@ -176,7 +178,7 @@ pub fn tokenize(
       while name_pos < tokenizer.input.len() {
         tokenizer.seek_and_get_next_codepoint(name_pos);
         let valid_codepoint = is_valid_name_codepoint(
-          tokenizer.code_point, // TODO: unwrap?
+          tokenizer.code_point.unwrap(), // TODO: dont unwrap
           name_pos == name_start,
         );
         if !valid_codepoint {
@@ -294,5 +296,6 @@ pub fn tokenize(
 
 // Ref: https://wicg.github.io/urlpattern/#is-a-valid-name-code-point
 // TODO: inline?
-// TODO
-fn is_valid_name_codepoint(code_point: char, first: bool) -> bool {}
+fn is_valid_name_codepoint(_code_point: char, _first: bool) -> bool {
+  todo!()
+}
