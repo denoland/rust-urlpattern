@@ -80,9 +80,9 @@ where
   F: Fn(&str) -> Result<String, ParseError>,
 {
   // Ref: https://wicg.github.io/urlpattern/#try-to-consume-a-token
-  fn try_consume_token(&mut self, kind: TokenType) -> Option<&Token> {
+  fn try_consume_token(&mut self, kind: TokenType) -> Option<Token> {
     assert!(self.index < self.token_list.len());
-    let next_token = &self.token_list[self.index];
+    let next_token = self.token_list[self.index].clone();
     if next_token.kind != kind {
       None
     } else {
@@ -95,11 +95,11 @@ where
   // TODO: inline?
   fn try_consume_regexp_or_wildcard_token(
     &mut self,
-    name_token: Option<&Token>,
-  ) -> Option<&Token> {
+    name_token_is_none: bool,
+  ) -> Option<Token> {
     // TODO: do not mut, instead return
     let mut token = self.try_consume_token(TokenType::Regexp);
-    if name_token.is_none() && token.is_none() {
+    if name_token_is_none && token.is_none() {
       token = self.try_consume_token(TokenType::Asterisk);
     }
     token
@@ -107,7 +107,7 @@ where
 
   // Ref: https://wicg.github.io/urlpattern/#try-to-consume-a-modifier-token
   // TODO: inline?
-  fn try_consume_modifier_token(&mut self) -> Option<&Token> {
+  fn try_consume_modifier_token(&mut self) -> Option<Token> {
     // TODO: use .or()
     let token = self.try_consume_token(TokenType::OtherModifier);
     if token.is_some() {
@@ -140,10 +140,10 @@ where
   fn add_part(
     &mut self,
     prefix: &str,
-    name_token: Option<&Token>,
-    regexp_or_wildcard_token: Option<&Token>,
+    name_token: Option<Token>,
+    regexp_or_wildcard_token: Option<Token>,
     suffix: &str,
-    modifier_token: Option<&Token>,
+    modifier_token: Option<Token>,
   ) -> Result<(), ParseError> {
     let mut modifier = PartModifier::None;
     if let Some(modifier_token) = modifier_token {
@@ -176,21 +176,24 @@ where
       return Ok(());
     }
 
-    let mut regexp_value: &str = if regexp_or_wildcard_token.is_none() {
-      &self.segment_wildcard_regexp
-    } else if regexp_or_wildcard_token.unwrap().kind == TokenType::Asterisk {
-      FULL_WILDCARD_REGEXP_VALUE
-    } else {
-      &regexp_or_wildcard_token.unwrap().value
+    let mut regexp_value = match &regexp_or_wildcard_token {
+      None => self.segment_wildcard_regexp.to_owned(),
+      Some(regexp_or_wildcard_token) => {
+        if regexp_or_wildcard_token.kind == TokenType::Asterisk {
+          FULL_WILDCARD_REGEXP_VALUE.to_string()
+        } else {
+          regexp_or_wildcard_token.value.to_owned()
+        }
+      }
     };
 
     let mut kind = PartType::Regexp;
     if regexp_value == self.segment_wildcard_regexp {
       kind = PartType::SegmentWildcard;
-      regexp_value = "";
+      regexp_value = String::new();
     } else if regexp_value == FULL_WILDCARD_REGEXP_VALUE {
       kind = PartType::FullWildcard;
-      regexp_value = "";
+      regexp_value = String::new();
     }
 
     let mut name = String::new();
@@ -204,7 +207,7 @@ where
     let encoded_suffix = (self.encoding_callback)(suffix)?;
     self.part_list.push(Part {
       kind,
-      value: regexp_value.to_owned(),
+      value: regexp_value,
       modifier,
       name,
       prefix: encoded_prefix,
@@ -234,7 +237,7 @@ where
   fn consume_required_token(
     &mut self,
     kind: TokenType,
-  ) -> Result<&Token, ParseError> {
+  ) -> Result<Token, ParseError> {
     let result = self.try_consume_token(kind);
     result.ok_or(ParseError::Tokenize) // TODO: better error
   }
@@ -266,20 +269,20 @@ where
     let char_token = parser.try_consume_token(TokenType::Char);
     let mut name_token = parser.try_consume_token(TokenType::Name);
     let mut regexp_or_wildcard_token =
-      parser.try_consume_regexp_or_wildcard_token(name_token);
+      parser.try_consume_regexp_or_wildcard_token(name_token.is_none());
     if name_token.is_some() || regexp_or_wildcard_token.is_some() {
-      let mut prefix = "";
+      let mut prefix = String::new();
       if let Some(char_token) = char_token {
-        prefix = &char_token.value;
+        prefix = char_token.value.to_owned();
       }
       if !prefix.is_empty() && prefix != options.prefix_code_point {
-        parser.pending_fixed_value.push_str(prefix);
-        prefix = "";
+        parser.pending_fixed_value.push_str(&prefix);
+        prefix = String::new();
       }
       parser.maybe_add_part_from_pending_fixed_value()?;
       let modifier_token = parser.try_consume_modifier_token();
       parser.add_part(
-        prefix,
+        &prefix,
         name_token,
         regexp_or_wildcard_token,
         "",
@@ -300,7 +303,7 @@ where
       let prefix = parser.consume_text();
       name_token = parser.try_consume_token(TokenType::Name);
       regexp_or_wildcard_token =
-        parser.try_consume_regexp_or_wildcard_token(name_token);
+        parser.try_consume_regexp_or_wildcard_token(name_token.is_none());
       let suffix = parser.consume_text();
       parser.consume_required_token(TokenType::Close)?;
       let modifier_token = parser.try_consume_modifier_token();
