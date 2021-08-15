@@ -24,7 +24,7 @@ pub enum TokenType {
 #[derive(Clone)]
 pub struct Token {
   pub kind: TokenType,
-  index: usize,
+  pub index: usize,
   pub value: String,
 }
 
@@ -36,8 +36,8 @@ pub enum TokenizePolicy {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#tokenizer
-struct Tokenizer {
-  input: String,
+struct Tokenizer<'a> {
+  input: &'a str,
   policy: TokenizePolicy,
   token_list: Vec<Token>,
   index: usize,
@@ -45,7 +45,7 @@ struct Tokenizer {
   code_point: Option<char>, // TODO: get rid of Option
 }
 
-impl Tokenizer {
+impl<'a> Tokenizer<'a> {
   // Ref: https://wicg.github.io/urlpattern/#get-the-next-code-point
   // TODO: inline?
   fn get_next_codepoint(&mut self) {
@@ -122,7 +122,7 @@ impl Tokenizer {
 
 // Ref: https://wicg.github.io/urlpattern/#tokenize
 pub fn tokenize(
-  input: String,
+  input: &str,
   policy: TokenizePolicy,
 ) -> Result<Vec<Token>, ParseError> {
   let mut tokenizer = Tokenizer {

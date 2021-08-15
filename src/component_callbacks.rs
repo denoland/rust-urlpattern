@@ -4,6 +4,8 @@ use crate::ParseError;
 
 // https://wicg.github.io/urlpattern/#canon-encoding-callbacks
 
+// TODO: move to component.rs
+
 // TODO: dont use dummy.test, expose functions in url crate
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-protocol

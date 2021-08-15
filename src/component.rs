@@ -9,8 +9,8 @@ use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
 use crate::ParseError;
 
 // Ref: https://wicg.github.io/urlpattern/#component
-struct Component {
-  pattern_string: String,
+pub struct Component {
+  pub pattern_string: String,
   regexp: regex::Regex,
   group_name_list: Vec<String>,
 }
@@ -18,7 +18,7 @@ struct Component {
 impl Component {
   // Ref: https://wicg.github.io/urlpattern/#compile-a-component
   pub fn compile<F>(
-    input: String,
+    input: &str,
     encoding_callback: F,
     options: &Options,
   ) -> Result<Self, ParseError>
@@ -37,6 +37,18 @@ impl Component {
       regexp,
       group_name_list: name_list,
     })
+  }
+
+  // Ref: https://wicg.github.io/urlpattern/#protocol-component-matches-a-special-scheme
+  pub fn protocol_component_matches_special_scheme(&self) -> bool {
+    const SPECIAL_SCHEMES: [&str; 6] =
+      ["ftp", "file", "http", "https", "ws", "wss"];
+    for scheme in SPECIAL_SCHEMES {
+      // TODO: regex exec
+      self.regexp.find(scheme);
+    }
+
+    todo!()
   }
 }
 

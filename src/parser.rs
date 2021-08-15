@@ -13,6 +13,16 @@ pub struct Options {
   pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
 }
 
+impl std::default::Default for Options {
+  // Ref: https://wicg.github.io/urlpattern/#default-options
+  fn default() -> Self {
+    Options {
+      delimiter_code_point: String::new(),
+      prefix_code_point: String::new(),
+    }
+  }
+}
+
 impl Options {
   // Ref: https://wicg.github.io/urlpattern/#generate-a-segment-wildcard-regexp
   // TODO: inline?
@@ -258,7 +268,7 @@ where
 
 // Ref: https://wicg.github.io/urlpattern/#parse-a-pattern-string
 pub fn parse_pattern_string<F>(
-  input: String,
+  input: &str,
   options: &Options,
   encoding_callback: F,
 ) -> Result<Vec<Part>, ParseError>
