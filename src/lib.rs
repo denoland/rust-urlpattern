@@ -112,6 +112,7 @@ impl UrlPatternInit {
   }
 }
 
+// TODO: maybe specify baseURL only for String variant?
 /// Input for URLPattern functions.
 pub enum URLPatternInput {
   String(String),
@@ -132,7 +133,7 @@ pub struct UrlPattern {
 }
 
 impl UrlPattern {
-  /// Parse a [UrlPatternInit] and optionally a base url into a [UrlPattern].
+  /// Parse a [URLPatternInput] and optionally a base url into a [UrlPattern].
   pub fn parse(
     input: URLPatternInput,
     base_url: Option<String>,
@@ -151,7 +152,7 @@ impl UrlPattern {
       }
     };
 
-    let processed_init = init.process(
+    let mut processed_init = init.process(
       Some(canonicalize_and_process::ProcessType::Pattern),
       None,
       None,
@@ -163,7 +164,55 @@ impl UrlPattern {
       None,
     )?;
 
-    todo!();
+    // TODO: expose parts of url crate?
+    //  If processedInit["protocol"] is a special scheme and processedInit["port"] is its corresponding default port
+    if processed_init.protocol {
+      processed_init.port = Some(String::new());
+    }
+
+    Ok(UrlPattern {
+      protocol: component::Component::compile(
+        processed_init.protocol,
+        canonicalize_and_process::canonicalize_protocol,
+        &Default::default(),
+      )?,
+      username: component::Component::compile(
+        processed_init.username,
+        canonicalize_and_process::canonicalize_username,
+        &Default::default(),
+      )?,
+      password: component::Component::compile(
+        processed_init.password,
+        canonicalize_and_process::canonicalize_password,
+        &Default::default(),
+      )?,
+      hostname: component::Component::compile(
+        processed_init.hostname,
+        canonicalize_and_process::canonicalize_hostname,
+        &parser::Options::hostname(),
+      )?,
+      port: component::Component::compile(
+        processed_init.port,
+        canonicalize_and_process::canonicalize_port,
+        &Default::default(),
+      )?,
+      pathname: todo!(
+        r#"
+If the result of running protocol component matches a special scheme given this's protocol component is true, then set this's pathname component to the result of compiling a component given processedInit["pathname"], canonicalize a standard pathname, and standard pathname options.
+Else set this's pathname component to the result of compiling a component given processedInit["pathname"], canonicalize a cannot-be-a-base-URL pathname, and default options
+"#
+      ),
+      search: component::Component::compile(
+        processed_init.search,
+        canonicalize_and_process::canonicalize_search,
+        &Default::default(),
+      )?,
+      hash: component::Component::compile(
+        processed_init.hash,
+        canonicalize_and_process::canonicalize_hash,
+        &Default::default(),
+      )?,
+    })
   }
 
   pub fn protocol(&self) -> &str {
@@ -191,8 +240,116 @@ impl UrlPattern {
     &self.hash.pattern_string
   }
 
-  /// Test if a given input string (with optional base url), matches the pattern.
-  pub fn test(&self, _input: &str, _base_url: Option<&str>) -> bool {
-    false
+  // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-test
+  /// Test if a given input [URLPatternInput] (with optional base url), matches the pattern.
+  pub fn test(
+    &self,
+    input: URLPatternInput,
+    base_url: Option<&str>,
+  ) -> Result<bool, ParseError> {
+    self.matches(input, base_url).map(|res| res.is_some())
   }
+
+  // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-exec
+  // TODO: doc
+  pub fn exec(
+    &self,
+    input: URLPatternInput,
+    base_url: Option<&str>,
+  ) -> Result<Option<URLPatternResult>, ParseError> {
+    self.matches(input, base_url)
+  }
+
+  // Ref: https://wicg.github.io/urlpattern/#match
+  fn matches(
+    &self,
+    input: URLPatternInput,
+    base_url_string: Option<&str>,
+  ) -> Result<Option<URLPatternResult>, ParseError> {
+    let mut protocol = String::new();
+    let mut username = String::new();
+    let mut password = String::new();
+    let mut hostname = String::new();
+    let mut port = String::new();
+    let mut pathname = String::new();
+    let mut search = String::new();
+    let mut hash = String::new();
+    let mut inputs = vec![input];
+    match input {
+      URLPatternInput::URLPatternInit(input) => {
+        if base_url_string.is_some() {
+          return Err(ParseError::SomeRandomOtherError); // TODO: proper error
+        }
+        if let Ok(apply_result) = input.process(
+          Some(canonicalize_and_process::ProcessType::Url),
+          Some(protocol),
+          Some(username),
+          Some(password),
+          Some(hostname),
+          Some(port),
+          Some(pathname),
+          Some(search),
+          Some(hash),
+        ) {
+          protocol = apply_result.protocol;
+          username = apply_result.username;
+          password = apply_result.password;
+          hostname = apply_result.hostname;
+          port = apply_result.port;
+          pathname = apply_result.pathname;
+          search = apply_result.search;
+          hash = apply_result.hash;
+        } else {
+          return Ok(None);
+        }
+      }
+      URLPatternInput::String(input) => {
+        let base_url = if let Some(base_url_string) = base_url_string {
+          if let Ok(url) = url::Url::parse(base_url_string) {
+            inputs.push(URLPatternInput::String(url.to_string())); // TODO: check
+            Some(url)
+          } else {
+            return Ok(None);
+          }
+        } else {
+          None
+        };
+        // TODO: check
+        let url = if let Ok(url) = url::Url::options()
+          .base_url(base_url.as_ref())
+          .parse(&input)
+        {
+          url
+        } else {
+          return Ok(None);
+        };
+
+        todo!()
+      }
+    }
+
+    Ok(Some(()))
+  }
+}
+
+// Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult
+// TODO: doc
+pub struct URLPatternResult {
+  pub inputs: Vec<URLPatternInput>,
+
+  pub protocol: URLPatternComponentResult,
+  pub username: URLPatternComponentResult,
+  pub password: URLPatternComponentResult,
+  pub hostname: URLPatternComponentResult,
+  pub port: URLPatternComponentResult,
+  pub pathname: URLPatternComponentResult,
+  pub search: URLPatternComponentResult,
+  pub hash: URLPatternComponentResult,
+}
+
+// Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatterncomponentresult
+// TODO: doc
+pub struct URLPatternComponentResult {
+  pub input: String,
+  pub groups: std::collections::HashMap<String, String>,
 }

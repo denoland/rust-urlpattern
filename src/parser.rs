@@ -24,6 +24,15 @@ impl std::default::Default for Options {
 }
 
 impl Options {
+  pub fn hostname() -> Self {
+    Options {
+      delimiter_code_point: String::from("."),
+      prefix_code_point: String::new(),
+    }
+  }
+}
+
+impl Options {
   // Ref: https://wicg.github.io/urlpattern/#generate-a-segment-wildcard-regexp
   // TODO: inline?
   pub fn generate_segment_wildcard_regexp(&self) -> String {

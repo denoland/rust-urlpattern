@@ -50,6 +50,11 @@ impl Component {
 
     todo!()
   }
+
+  // Ref: https://wicg.github.io/urlpattern/#create-a-component-match-result
+  pub fn create_match_result(input: &str, exec_result: ()) {
+    todo!()
+  }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#generate-a-regular-expression-and-name-list
