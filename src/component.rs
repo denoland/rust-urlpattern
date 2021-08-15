@@ -187,7 +187,6 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#escape-a-pattern-string
-// TODO: use fold?
 fn escape_pattern_string(input: &str) -> String {
   assert!(input.is_ascii());
   let mut result = String::new();

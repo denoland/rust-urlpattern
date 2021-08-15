@@ -130,24 +130,20 @@ where
     &mut self,
     name_token_is_none: bool,
   ) -> Option<Token> {
-    // TODO: do not mut, instead return
-    let mut token = self.try_consume_token(TokenType::Regexp);
+    let token = self.try_consume_token(TokenType::Regexp);
     if name_token_is_none && token.is_none() {
-      token = self.try_consume_token(TokenType::Asterisk);
+      self.try_consume_token(TokenType::Asterisk)
+    } else {
+      token
     }
-    token
   }
 
   // Ref: https://wicg.github.io/urlpattern/#try-to-consume-a-modifier-token
   #[inline]
   fn try_consume_modifier_token(&mut self) -> Option<Token> {
-    // TODO: use .or()
-    let token = self.try_consume_token(TokenType::OtherModifier);
-    if token.is_some() {
-      token
-    } else {
-      self.try_consume_token(TokenType::Asterisk)
-    }
+    self
+      .try_consume_token(TokenType::OtherModifier)
+      .or(self.try_consume_token(TokenType::Asterisk))
   }
 
   // Ref: https://wicg.github.io/urlpattern/#maybe-add-a-part-from-the-pending-fixed-value
@@ -356,7 +352,6 @@ where
 }
 
 // Ref: https://wicg.github.io/urlpattern/#escape-a-regexp-string
-// TODO: use fold?
 pub fn escape_regexp_string(input: &str) -> String {
   assert!(input.is_ascii());
   let mut result = String::new();
