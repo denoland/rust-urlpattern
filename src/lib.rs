@@ -1,7 +1,7 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+mod canonicalize_and_process;
 mod component;
-mod component_callbacks;
 mod constructor_parser;
 mod parser;
 mod tokenizer;
@@ -14,6 +14,7 @@ pub enum ParseError {
   Tokenize,
   Url(url::ParseError),
   RegEx(regex::Error),
+  SomeRandomOtherError, // TODO: remove
 }
 
 impl std::error::Error for ParseError {}
@@ -33,9 +34,10 @@ pub struct UrlPatternInit {
 
 impl UrlPatternInit {
   // Ref: https://wicg.github.io/urlpattern/#process-a-urlpatterninit
+  #[allow(clippy::too_many_arguments)]
   fn process(
     &self,
-    kind: Option<ProcessType>,
+    kind: Option<canonicalize_and_process::ProcessType>,
     protocol: Option<String>,
     username: Option<String>,
     password: Option<String>,
@@ -65,40 +67,52 @@ impl UrlPatternInit {
       result.username = Some(base_url.username().to_string()); // TODO: if empty, none
       result.password = base_url.password().map(String::from);
       result.hostname = Some(url::quirks::hostname(&base_url).to_string());
-      result.port = todo!();
-      result.pathname = todo!();
+      todo!("port");
+      todo!("pathname");
       result.search = Some(base_url.query().unwrap_or("").to_string());
       result.hash = Some(base_url.fragment().unwrap_or("").to_string());
     }
 
     if let Some(protocol) = &self.protocol {
-      result.protocol = Some(process_protocol_init(protocol, &kind));
+      result.protocol = Some(canonicalize_and_process::process_protocol_init(
+        protocol, &kind,
+      )?);
     }
     if let Some(username) = &self.username {
-      result.username = Some(process_username_init(username, &kind));
+      result.username = Some(canonicalize_and_process::process_username_init(
+        username, &kind,
+      )?);
     }
     if let Some(password) = &self.password {
-      result.password = Some(process_password_init(password, &kind));
+      result.password = Some(canonicalize_and_process::process_password_init(
+        password, &kind,
+      )?);
     }
     if let Some(hostname) = &self.hostname {
-      result.hostname = Some(process_hostname_init(hostname, &kind));
+      result.hostname = Some(canonicalize_and_process::process_hostname_init(
+        hostname, &kind,
+      )?);
     }
     if let Some(_port) = &self.port {
-      result.port = Some(todo!());
+      todo!()
     }
     if let Some(_pathname) = &self.pathname {
-      result.pathname = Some(todo!());
+      todo!()
     }
     if let Some(search) = &self.search {
-      result.search = Some(process_search_init(search, &kind));
+      result.search = Some(canonicalize_and_process::process_search_init(
+        search, &kind,
+      )?);
     }
     if let Some(hash) = &self.hash {
-      result.hash = Some(process_hash_init(hash, &kind));
+      result.hash =
+        Some(canonicalize_and_process::process_hash_init(hash, &kind)?);
     }
     Ok(result)
   }
 }
 
+/// Input for URLPattern functions.
 pub enum URLPatternInput {
   String(String),
   URLPatternInit(UrlPatternInit),
@@ -131,14 +145,14 @@ impl UrlPattern {
       }
       URLPatternInput::URLPatternInit(input) => {
         if base_url.is_some() {
-          return Err(ParseError); // TODO: proper error
+          return Err(ParseError::SomeRandomOtherError); // TODO: proper error
         }
         input
       }
     };
 
     let processed_init = init.process(
-      Some(ProcessType::Pattern),
+      Some(canonicalize_and_process::ProcessType::Pattern),
       None,
       None,
       None,
@@ -150,17 +164,6 @@ impl UrlPattern {
     )?;
 
     todo!();
-
-    Ok(UrlPattern {
-      protocol: (),
-      username: (),
-      password: (),
-      hostname: (),
-      port: (),
-      pathname: (),
-      search: (),
-      hash: (),
-    })
   }
 
   pub fn protocol(&self) -> &str {
@@ -191,90 +194,5 @@ impl UrlPattern {
   /// Test if a given input string (with optional base url), matches the pattern.
   pub fn test(&self, _input: &str, _base_url: Option<&str>) -> bool {
     false
-  }
-}
-
-#[derive(Eq, PartialEq)]
-enum ProcessType {
-  Pattern,
-  Url,
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-protocol-for-init
-fn process_protocol_init(value: &str, kind: &Option<ProcessType>) -> String {
-  let stripped_value = if value.starts_with(':') {
-    value.get(1..).unwrap()
-  } else {
-    value
-  };
-  if kind == &Some(ProcessType::Pattern) {
-    stripped_value.to_string()
-  } else {
-    component_callbacks::canonicalize_protocol(stripped_value)
-  }
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-username-for-init
-fn process_username_init(value: &str, kind: &Option<ProcessType>) -> String {
-  if kind == &Some(ProcessType::Pattern) {
-    value.to_string()
-  } else {
-    component_callbacks::canonicalize_username(value)
-  }
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-password-for-init
-fn process_password_init(value: &str, kind: &Option<ProcessType>) -> String {
-  if kind == &Some(ProcessType::Pattern) {
-    value.to_string()
-  } else {
-    component_callbacks::canonicalize_password(value)
-  }
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-hostname-for-init
-fn process_hostname_init(value: &str, kind: &Option<ProcessType>) -> String {
-  if kind == &Some(ProcessType::Pattern) {
-    value.to_string()
-  } else {
-    component_callbacks::canonicalize_hostname(value)
-  }
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-port-for-init
-fn process_port_init(_value: &str, _kind: &Option<ProcessType>) -> String {
-  todo!()
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-pathname-for-init
-fn process_pathname_init(_value: &str, _kind: &Option<ProcessType>) -> String {
-  todo!()
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-search-for-init
-fn process_search_init(value: &str, kind: &Option<ProcessType>) -> String {
-  let stripped_value = if value.starts_with('?') {
-    value.get(1..).unwrap()
-  } else {
-    value
-  };
-  if kind == &Some(ProcessType::Pattern) {
-    stripped_value.to_string()
-  } else {
-    component_callbacks::canonicalize_search(stripped_value)
-  }
-}
-
-// Ref: https://wicg.github.io/urlpattern/#process-hash-for-init
-fn process_hash_init(value: &str, kind: &Option<ProcessType>) -> String {
-  let stripped_value = if value.starts_with('#') {
-    value.get(1..).unwrap()
-  } else {
-    value
-  };
-  if kind == &Some(ProcessType::Pattern) {
-    stripped_value.to_string()
-  } else {
-    component_callbacks::canonicalize_hash(stripped_value)
   }
 }

@@ -64,7 +64,9 @@ impl<'a> ConstructorStringParser<'a> {
       return false;
     }
     let previous_index = self.token_index - 1;
+    #[allow(clippy::absurd_extreme_comparisons)]
     if previous_index < 0 {
+      // TODO: move to isize
       return true;
     }
     let previous_token = self.get_safe_token(previous_index);
@@ -205,7 +207,7 @@ impl<'a> ConstructorStringParser<'a> {
     let protocol_string = self.make_component_string();
     let protocol_component = crate::component::Component::compile(
       &protocol_string,
-      crate::component_callbacks::canonicalize_protocol,
+      crate::canonicalize_and_process::canonicalize_protocol,
       &Default::default(),
     )?;
     if protocol_component.protocol_component_matches_special_scheme() {
@@ -217,13 +219,10 @@ impl<'a> ConstructorStringParser<'a> {
   // Ref: https://wicg.github.io/urlpattern/#next-is-authority-slashes
   // TODO: inline?
   fn next_is_authority_slashes(&self) -> bool {
-    // TODO: simplify
     if !self.is_non_special_pattern_char(self.token_index + 1, "/") {
       false
-    } else if !self.is_non_special_pattern_char(self.token_index + 2, "/") {
-      false
     } else {
-      true
+      self.is_non_special_pattern_char(self.token_index + 2, "/")
     }
   }
 }
