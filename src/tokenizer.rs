@@ -47,7 +47,7 @@ struct Tokenizer<'a> {
 
 impl<'a> Tokenizer<'a> {
   // Ref: https://wicg.github.io/urlpattern/#get-the-next-code-point
-  // TODO: inline?
+  #[inline]
   fn get_next_codepoint(&mut self) {
     // TODO: Set tokenizer’s code point to the Unicode code point in tokenizer’s input at the position indicated by tokenizer’s next index.
     //  get Unicode code point
@@ -56,13 +56,13 @@ impl<'a> Tokenizer<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#add-a-token-with-default-position-and-length
-  // TODO: inline?
+  #[inline]
   fn add_token_with_default_pos_and_len(&mut self, kind: TokenType) {
     self.add_token_with_default_len(kind, self.next_index, self.index);
   }
 
   // Ref: https://wicg.github.io/urlpattern/#add-a-token-with-default-length
-  // TODO: inline?
+  #[inline]
   fn add_token_with_default_len(
     &mut self,
     kind: TokenType,
@@ -73,7 +73,7 @@ impl<'a> Tokenizer<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#add-a-token
-  // TODO: inline?
+  #[inline]
   fn add_token(
     &mut self,
     kind: TokenType,
@@ -94,7 +94,6 @@ impl<'a> Tokenizer<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#process-a-tokenizing-error
-  // TODO: inline?
   fn process_tokenizing_error(
     &mut self,
     next_pos: usize,
@@ -113,7 +112,7 @@ impl<'a> Tokenizer<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#seek-and-get-the-next-code-point
-  // TODO: inline?
+  #[inline]
   fn seek_and_get_next_codepoint(&mut self, index: usize) {
     self.next_index = index;
     self.get_next_codepoint();
@@ -296,7 +295,7 @@ pub fn tokenize(
 }
 
 // Ref: https://wicg.github.io/urlpattern/#is-a-valid-name-code-point
-// TODO: inline?
+#[inline]
 fn is_valid_name_codepoint(_code_point: char, _first: bool) -> bool {
   todo!()
 }

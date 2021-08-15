@@ -36,26 +36,25 @@ struct ConstructorStringParser<'a> {
 
 impl<'a> ConstructorStringParser<'a> {
   // Ref: https://wicg.github.io/urlpattern/#rewind
-  // TODO: inline?
+  #[inline]
   fn rewind(&mut self) {
     self.token_index = self.component_start;
     self.token_increment = 0;
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-hash-prefix
-  // TODO: inline?
+  #[inline]
   fn is_hash_prefix(&self) -> bool {
     self.is_non_special_pattern_char(self.token_index, "#")
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-protocol-suffix
-  // TODO: inline?
+  #[inline]
   fn is_protocol_suffix(&self) -> bool {
     self.is_non_special_pattern_char(self.token_index, ":")
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-search-prefix
-  // TODO: inline?
   fn is_search_prefix(&self) -> bool {
     if self.is_non_special_pattern_char(self.token_index, "?") {
       return true;
@@ -80,31 +79,30 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-password-prefix
-  // TODO: inline?
+  #[inline]
   fn is_password_prefix(&self) -> bool {
     self.is_non_special_pattern_char(self.token_index, ":")
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-port-prefix
-  // TODO: inline?
+  #[inline]
   fn is_port_prefix(&self) -> bool {
     self.is_non_special_pattern_char(self.token_index, ":")
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-pathname-start
-  // TODO: inline?
+  #[inline]
   fn is_pathname_start(&self) -> bool {
     self.is_non_special_pattern_char(self.token_index, "/")
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-an-identity-terminator
-  // TODO: inline?
+  #[inline]
   fn is_identity_terminator(&self) -> bool {
     self.is_non_special_pattern_char(self.token_index, "@")
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-non-special-pattern-char
-  // TODO: inline?
   fn is_non_special_pattern_char(&self, index: usize, value: &str) -> bool {
     let token = self.get_safe_token(index);
     if token.value != value {
@@ -118,7 +116,6 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#get-a-safe-token
-  // TODO: inline?
   fn get_safe_token(&self, index: usize) -> &Token {
     if index < self.token_list.len() {
       &self.token_list[index]
@@ -183,26 +180,25 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#rewind-and-set-state
-  // TODO: inline?
+  #[inline]
   fn rewind_and_set_state(&mut self, state: ConstructorStringParserState) {
     self.rewind();
     self.state = state;
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-group-open
-  // TODO: inline?
+  #[inline]
   fn is_group_open(&self) -> bool {
     self.token_list[self.token_index].kind == TokenType::Open
   }
 
   // Ref: https://wicg.github.io/urlpattern/#is-a-group-close
-  // TODO: inline?
+  #[inline]
   fn is_group_close(&self) -> bool {
     self.token_list[self.token_index].kind == TokenType::Close
   }
 
   // Ref: https://wicg.github.io/urlpattern/#compute-should-treat-as-a-standard-url
-  // TODO: inline?
   fn compute_should_treat_as_standard_url(&mut self) -> Result<(), ParseError> {
     let protocol_string = self.make_component_string();
     let protocol_component = crate::component::Component::compile(
@@ -217,7 +213,7 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#next-is-authority-slashes
-  // TODO: inline?
+  #[inline]
   fn next_is_authority_slashes(&self) -> bool {
     if !self.is_non_special_pattern_char(self.token_index + 1, "/") {
       false

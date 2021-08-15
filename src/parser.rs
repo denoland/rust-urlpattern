@@ -15,6 +15,7 @@ pub struct Options {
 
 impl std::default::Default for Options {
   // Ref: https://wicg.github.io/urlpattern/#default-options
+  #[inline]
   fn default() -> Self {
     Options {
       delimiter_code_point: String::new(),
@@ -24,17 +25,17 @@ impl std::default::Default for Options {
 }
 
 impl Options {
+  // Ref: https://wicg.github.io/urlpattern/#hostname-options
+  #[inline]
   pub fn hostname() -> Self {
     Options {
       delimiter_code_point: String::from("."),
       prefix_code_point: String::new(),
     }
   }
-}
 
-impl Options {
   // Ref: https://wicg.github.io/urlpattern/#generate-a-segment-wildcard-regexp
-  // TODO: inline?
+  #[inline]
   pub fn generate_segment_wildcard_regexp(&self) -> String {
     format!("[^{}]+?", escape_regexp_string(&self.delimiter_code_point))
   }
@@ -124,7 +125,7 @@ where
   }
 
   // Ref: https://wicg.github.io/urlpattern/#try-to-consume-a-regexp-or-wildcard-token
-  // TODO: inline?
+  #[inline]
   fn try_consume_regexp_or_wildcard_token(
     &mut self,
     name_token_is_none: bool,
@@ -138,7 +139,7 @@ where
   }
 
   // Ref: https://wicg.github.io/urlpattern/#try-to-consume-a-modifier-token
-  // TODO: inline?
+  #[inline]
   fn try_consume_modifier_token(&mut self) -> Option<Token> {
     // TODO: use .or()
     let token = self.try_consume_token(TokenType::OtherModifier);
@@ -150,7 +151,7 @@ where
   }
 
   // Ref: https://wicg.github.io/urlpattern/#maybe-add-a-part-from-the-pending-fixed-value
-  // TODO: inline?
+  #[inline]
   fn maybe_add_part_from_pending_fixed_value(
     &mut self,
   ) -> Result<(), ParseError> {
