@@ -328,7 +328,55 @@ Else set this's pathname component to the result of compiling a component given 
       }
     }
 
-    Ok(Some(()))
+    let protocol_exec_result = self.protocol.regexp.captures(&protocol);
+    let username_exec_result = self.username.regexp.captures(&username);
+    let password_exec_result = self.password.regexp.captures(&password);
+    let hostname_exec_result = self.hostname.regexp.captures(&hostname);
+    let port_exec_result = self.port.regexp.captures(&port);
+    let pathname_exec_result = self.pathname.regexp.captures(&pathname);
+    let search_exec_result = self.search.regexp.captures(&search);
+    let hash_exec_result = self.hash.regexp.captures(&hash);
+
+    if protocol_exec_result
+      .and(username_exec_result)
+      .and(password_exec_result)
+      .and(hostname_exec_result)
+      .and(port_exec_result)
+      .and(pathname_exec_result)
+      .and(search_exec_result)
+      .and(hash_exec_result)
+      .is_none()
+    {
+      Ok(None)
+    } else {
+      Ok(Some(URLPatternResult {
+        inputs,
+        protocol: self
+          .protocol
+          .create_match_result(protocol, protocol_exec_result.unwrap()),
+        username: self
+          .username
+          .create_match_result(username, username_exec_result.unwrap()),
+        password: self
+          .password
+          .create_match_result(password, password_exec_result.unwrap()),
+        hostname: self
+          .hostname
+          .create_match_result(hostname, hostname_exec_result.unwrap()),
+        port: self
+          .port
+          .create_match_result(port, port_exec_result.unwrap()),
+        pathname: self
+          .pathname
+          .create_match_result(pathname, pathname_exec_result.unwrap()),
+        search: self
+          .search
+          .create_match_result(search, search_exec_result.unwrap()),
+        hash: self
+          .hash
+          .create_match_result(hash, hash_exec_result.unwrap()),
+      }))
+    }
   }
 }
 

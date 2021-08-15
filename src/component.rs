@@ -11,7 +11,7 @@ use crate::ParseError;
 // Ref: https://wicg.github.io/urlpattern/#component
 pub struct Component {
   pub pattern_string: String,
-  regexp: regex::Regex,
+  pub regexp: regex::Regex,
   group_name_list: Vec<String>,
 }
 
@@ -44,16 +44,29 @@ impl Component {
     const SPECIAL_SCHEMES: [&str; 6] =
       ["ftp", "file", "http", "https", "ws", "wss"];
     for scheme in SPECIAL_SCHEMES {
-      // TODO: regex exec
-      self.regexp.find(scheme);
+      if self.regexp.captures(scheme).is_some() {
+        return true;
+      }
     }
-
-    todo!()
+    false
   }
 
   // Ref: https://wicg.github.io/urlpattern/#create-a-component-match-result
-  pub fn create_match_result(input: &str, exec_result: ()) {
-    todo!()
+  pub fn create_match_result(
+    &self,
+    input: String,
+    exec_result: regex::Captures,
+  ) -> crate::URLPatternComponentResult {
+    let mut iter = exec_result.iter();
+    iter.next(); // first match is entire string
+    crate::URLPatternComponentResult {
+      input,
+      groups: self
+        .group_name_list
+        .into_iter()
+        .zip(iter.map(|e| e.unwrap().as_str().to_string())) // TODO: no unwrap
+        .collect(),
+    }
   }
 }
 
