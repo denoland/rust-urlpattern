@@ -34,6 +34,15 @@ impl Options {
     }
   }
 
+  // Ref: https://wicg.github.io/urlpattern/#standard-pathname-options
+  #[inline]
+  pub fn standard_pathname() -> Self {
+    Options {
+      delimiter_code_point: String::from("/"),
+      prefix_code_point: String::from("/"),
+    }
+  }
+
   // Ref: https://wicg.github.io/urlpattern/#generate-a-segment-wildcard-regexp
   #[inline]
   pub fn generate_segment_wildcard_regexp(&self) -> String {

@@ -73,10 +73,12 @@ impl UrlPatternInit {
 
       // TODO: check if these are correct
       result.protocol = Some(base_url.scheme().to_string());
-      result.username = Some(base_url.username().to_string()); // TODO: if empty, none
-      result.password = base_url.password().map(String::from);
-      result.hostname = Some(url::quirks::hostname(&base_url).to_string());
-      todo!("port");
+      result.username = Some(base_url.username().to_string());
+      result.password =
+        Some(base_url.password().unwrap_or_default().to_string());
+      result.hostname =
+        Some(base_url.host_str().unwrap_or_default().to_string());
+      result.port = Some(base_url.port().unwrap_or_default().to_string()); // TODO: or default port?
       todo!("pathname");
       result.search = Some(base_url.query().unwrap_or("").to_string());
       result.hash = Some(base_url.fragment().unwrap_or("").to_string());
@@ -189,47 +191,57 @@ impl UrlPattern {
       processed_init.port = Some(String::new());
     }
 
+    let protocol = Component::compile(
+      &processed_init.protocol.unwrap(),
+      canonicalize_and_process::canonicalize_protocol,
+      Default::default(),
+    )?;
+    let pathname = if protocol.protocol_component_matches_special_scheme() {
+      Component::compile(
+        &processed_init.pathname.unwrap(),
+        canonicalize_and_process::canonicalize_standard_pathname,
+        parser::Options::standard_pathname(),
+      )?
+    } else {
+      Component::compile(
+        &processed_init.pathname.unwrap(),
+        canonicalize_and_process::canonicalize_invalid_baseurl_pathname,
+        Default::default(),
+      )?
+    };
+
     Ok(UrlPattern {
-      protocol: Component::compile(
-        processed_init.protocol,
-        canonicalize_and_process::canonicalize_protocol,
-        &Default::default(),
-      )?,
+      protocol,
       username: Component::compile(
-        processed_init.username,
+        &processed_init.username.unwrap(),
         canonicalize_and_process::canonicalize_username,
-        &Default::default(),
+        Default::default(),
       )?,
       password: Component::compile(
-        processed_init.password,
+        &processed_init.password.unwrap(),
         canonicalize_and_process::canonicalize_password,
-        &Default::default(),
+        Default::default(),
       )?,
       hostname: Component::compile(
-        processed_init.hostname,
+        &processed_init.hostname.unwrap(),
         canonicalize_and_process::canonicalize_hostname,
-        &parser::Options::hostname(),
+        parser::Options::hostname(),
       )?,
       port: Component::compile(
-        processed_init.port,
+        &processed_init.port.unwrap(),
         canonicalize_and_process::canonicalize_port,
-        &Default::default(),
+        Default::default(),
       )?,
-      pathname: todo!(
-        r#"
-If the result of running protocol component matches a special scheme given this's protocol component is true, then set this's pathname component to the result of compiling a component given processedInit["pathname"], canonicalize a standard pathname, and standard pathname options.
-Else set this's pathname component to the result of compiling a component given processedInit["pathname"], canonicalize a cannot-be-a-base-URL pathname, and default options
-"#
-      ),
+      pathname,
       search: Component::compile(
-        processed_init.search,
+        &processed_init.search.unwrap(),
         canonicalize_and_process::canonicalize_search,
-        &Default::default(),
+        Default::default(),
       )?,
       hash: Component::compile(
-        processed_init.hash,
+        &processed_init.hash.unwrap(),
         canonicalize_and_process::canonicalize_hash,
-        &Default::default(),
+        Default::default(),
       )?,
     })
   }
@@ -310,14 +322,14 @@ Else set this's pathname component to the result of compiling a component given 
           Some(search),
           Some(hash),
         ) {
-          protocol = apply_result.protocol;
-          username = apply_result.username;
-          password = apply_result.password;
-          hostname = apply_result.hostname;
-          port = apply_result.port;
-          pathname = apply_result.pathname;
-          search = apply_result.search;
-          hash = apply_result.hash;
+          protocol = apply_result.protocol.unwrap();
+          username = apply_result.username.unwrap();
+          password = apply_result.password.unwrap();
+          hostname = apply_result.hostname.unwrap();
+          port = apply_result.port.unwrap();
+          pathname = apply_result.pathname.unwrap();
+          search = apply_result.search.unwrap();
+          hash = apply_result.hash.unwrap();
         } else {
           return Ok(None);
         }
@@ -343,7 +355,14 @@ Else set this's pathname component to the result of compiling a component given 
           return Ok(None);
         };
 
-        todo!()
+        protocol = url.scheme().to_string();
+        username = url.username().to_string();
+        password = url.password().unwrap_or_default().to_string();
+        hostname = url.host_str().unwrap_or_default().to_string();
+        port = url.port().unwrap_or_default().to_string(); // TODO: or known default?
+        todo!("pathname");
+        search = url.query().unwrap_or_default().to_string();
+        hash = url.fragment().unwrap_or_default().to_string();
       }
     }
 

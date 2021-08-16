@@ -27,18 +27,18 @@ impl Component {
   pub fn compile<F>(
     input: &str,
     encoding_callback: F,
-    options: &Options,
+    options: Options,
   ) -> Result<Self, ParseError>
   where
     F: Fn(&str) -> Result<String, ParseError>,
   {
     let part_list =
-      crate::parser::parse_pattern_string(input, options, encoding_callback)?;
+      crate::parser::parse_pattern_string(input, &options, encoding_callback)?;
     let (regexp_string, name_list) =
-      generate_regular_expression_and_name_list(&part_list, options);
+      generate_regular_expression_and_name_list(&part_list, &options);
     let regexp =
       regex::Regex::new(&regexp_string).map_err(ParseError::RegEx)?;
-    let pattern_string = generate_pattern_string(part_list, options);
+    let pattern_string = generate_pattern_string(part_list, &options);
     Ok(Component {
       pattern_string,
       regexp,

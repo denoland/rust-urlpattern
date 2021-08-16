@@ -200,7 +200,7 @@ impl<'a> ConstructorStringParser<'a> {
     let protocol_component = crate::component::Component::compile(
       &protocol_string,
       crate::canonicalize_and_process::canonicalize_protocol,
-      &Default::default(),
+      Default::default(),
     )?;
     if protocol_component.protocol_component_matches_special_scheme() {
       self.should_treat_as_standard_url = true;
