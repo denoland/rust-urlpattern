@@ -272,12 +272,12 @@ where
   }
 
   // Ref: https://wicg.github.io/urlpattern/#consume-a-required-token
+  #[inline]
   fn consume_required_token(
     &mut self,
     kind: TokenType,
   ) -> Result<Token, ParseError> {
-    let result = self.try_consume_token(kind);
-    result.ok_or(ParseError::Tokenize) // TODO: better error
+    self.try_consume_token(kind).ok_or(ParseError::Tokenize) // TODO: better error
   }
 }
 

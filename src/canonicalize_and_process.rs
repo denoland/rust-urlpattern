@@ -23,14 +23,14 @@ pub fn canonicalize_username(value: &str) -> Result<String, ParseError> {
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-password
 pub fn canonicalize_password(value: &str) -> Result<String, ParseError> {
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url.set_password(Some(value)).unwrap(); // TODO: dont unwrap
+  url.set_password(Some(value)).unwrap(); // TODO: dont unwrap, instead ParseError
   Ok(url.password().unwrap().to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-hostname
 pub fn canonicalize_hostname(value: &str) -> Result<String, ParseError> {
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url::quirks::set_hostname(&mut url, value).unwrap(); // TODO: dont unwrap
+  url::quirks::set_hostname(&mut url, value).unwrap(); // TODO: dont unwrap, instead ParseError
   Ok(url::quirks::hostname(&url).to_string())
 }
 
@@ -70,7 +70,10 @@ pub enum ProcessType {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-protocol-for-init
-pub fn process_protocol_init(value: &str, kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_protocol_init(
+  value: &str,
+  kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   let stripped_value = if value.starts_with(':') {
     value.get(1..).unwrap()
   } else {
@@ -84,7 +87,10 @@ pub fn process_protocol_init(value: &str, kind: &Option<ProcessType>) -> Result<
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-username-for-init
-pub fn process_username_init(value: &str, kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_username_init(
+  value: &str,
+  kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   if kind == &Some(ProcessType::Pattern) {
     Ok(value.to_string())
   } else {
@@ -93,7 +99,10 @@ pub fn process_username_init(value: &str, kind: &Option<ProcessType>) -> Result<
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-password-for-init
-pub fn process_password_init(value: &str, kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_password_init(
+  value: &str,
+  kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   if kind == &Some(ProcessType::Pattern) {
     Ok(value.to_string())
   } else {
@@ -102,7 +111,10 @@ pub fn process_password_init(value: &str, kind: &Option<ProcessType>) -> Result<
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-hostname-for-init
-pub fn process_hostname_init(value: &str, kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_hostname_init(
+  value: &str,
+  kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   if kind == &Some(ProcessType::Pattern) {
     Ok(value.to_string())
   } else {
@@ -111,17 +123,26 @@ pub fn process_hostname_init(value: &str, kind: &Option<ProcessType>) -> Result<
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-port-for-init
-pub fn process_port_init(_value: &str, _kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_port_init(
+  _value: &str,
+  _kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   todo!()
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-pathname-for-init
-pub fn process_pathname_init(_value: &str, _kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_pathname_init(
+  _value: &str,
+  _kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   todo!()
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-search-for-init
-pub fn process_search_init(value: &str, kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_search_init(
+  value: &str,
+  kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   let stripped_value = if value.starts_with('?') {
     value.get(1..).unwrap()
   } else {
@@ -135,7 +156,10 @@ pub fn process_search_init(value: &str, kind: &Option<ProcessType>) -> Result<St
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-hash-for-init
-pub fn process_hash_init(value: &str, kind: &Option<ProcessType>) -> Result<String, ParseError> {
+pub fn process_hash_init(
+  value: &str,
+  kind: &Option<ProcessType>,
+) -> Result<String, ParseError> {
   let stripped_value = if value.starts_with('#') {
     value.get(1..).unwrap()
   } else {

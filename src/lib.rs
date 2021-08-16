@@ -44,6 +44,7 @@ pub struct UrlPatternInit {
 
 impl UrlPatternInit {
   // Ref: https://wicg.github.io/urlpattern/#process-a-urlpatterninit
+  // TODO: use UrlPatternInit for arguments?
   #[allow(clippy::too_many_arguments)]
   fn process(
     &self,
@@ -79,7 +80,7 @@ impl UrlPatternInit {
         Some(base_url.password().unwrap_or_default().to_string());
       result.hostname =
         Some(base_url.host_str().unwrap_or_default().to_string());
-      result.port = Some(base_url.port().unwrap_or_default().to_string()); // TODO: or default port?
+      result.port = Some(base_url.port().unwrap_or_default().to_string()); // TODO: port_or_known_default?
       todo!("pathname");
       result.search = Some(base_url.query().unwrap_or("").to_string());
       result.hash = Some(base_url.fragment().unwrap_or("").to_string());
@@ -124,7 +125,7 @@ impl UrlPatternInit {
   }
 }
 
-// TODO: maybe specify baseURL only for String variant?
+// TODO: maybe specify baseURL directly in String variant? (baseURL in UrlPatternInit context will error per spec)
 /// Input for URLPattern functions.
 #[cfg_attr(feature = "serde_", derive(Deserialize, Serialize), serde(untagged))]
 #[derive(Clone)]
@@ -361,7 +362,7 @@ impl UrlPattern {
         username = url.username().to_string();
         password = url.password().unwrap_or_default().to_string();
         hostname = url.host_str().unwrap_or_default().to_string();
-        port = url.port().unwrap_or_default().to_string(); // TODO: or known default?
+        port = url.port().unwrap_or_default().to_string(); // TODO: port_or_known_default?
         todo!("pathname");
         search = url.query().unwrap_or_default().to_string();
         hash = url.fragment().unwrap_or_default().to_string();
