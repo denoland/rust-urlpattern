@@ -7,3 +7,4 @@ edition = "2018"
 derive_more = "0.99.16"
 url = "2.2.2"
 regex = "1.5.4"
+serde = { version = "1.0.127", features = ["derive"], optional = true }

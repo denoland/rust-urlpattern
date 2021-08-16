@@ -6,6 +6,11 @@ mod constructor_parser;
 mod parser;
 mod tokenizer;
 
+#[cfg(feature = "serde")]
+use serde::Deserialize;
+#[cfg(feature = "serde")]
+use serde::Serialize;
+
 use derive_more::Display;
 
 /// An error that occured during parsing.
@@ -20,16 +25,17 @@ pub enum ParseError {
 impl std::error::Error for ParseError {}
 
 /// The structured input used to create a URL pattern.
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct UrlPatternInit {
-  protocol: Option<String>,
-  username: Option<String>,
-  password: Option<String>,
-  hostname: Option<String>,
-  port: Option<String>,
-  pathname: Option<String>,
-  search: Option<String>,
-  hash: Option<String>,
-  base_url: Option<String>,
+  pub protocol: Option<String>,
+  pub username: Option<String>,
+  pub password: Option<String>,
+  pub hostname: Option<String>,
+  pub port: Option<String>,
+  pub pathname: Option<String>,
+  pub search: Option<String>,
+  pub hash: Option<String>,
+  pub base_url: Option<String>,
 }
 
 impl UrlPatternInit {
@@ -114,6 +120,7 @@ impl UrlPatternInit {
 
 // TODO: maybe specify baseURL only for String variant?
 /// Input for URLPattern functions.
+#[cfg_attr(feature = "serde", derive(Serialize), serde(untagged))]
 pub enum URLPatternInput {
   String(String),
   URLPatternInit(UrlPatternInit),
@@ -382,6 +389,7 @@ Else set this's pathname component to the result of compiling a component given 
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult
 // TODO: doc
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct URLPatternResult {
   pub inputs: Vec<URLPatternInput>,
 
@@ -397,6 +405,7 @@ pub struct URLPatternResult {
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatterncomponentresult
 // TODO: doc
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct URLPatternComponentResult {
   pub input: String,
   pub groups: std::collections::HashMap<String, String>,
