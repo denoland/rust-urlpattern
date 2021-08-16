@@ -39,6 +39,14 @@ pub fn canonicalize_port(_value: &str) -> Result<String, ParseError> {
   todo!()
 }
 
+// Ref: https://wicg.github.io/urlpattern/#canonicalize-a-port
+pub fn canonicalize_port_with_protocol(
+  _value: &str,
+  _protocol: &str,
+) -> Result<String, ParseError> {
+  todo!()
+}
+
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-standard-pathname
 pub fn canonicalize_standard_pathname(
   _value: &str,
