@@ -65,7 +65,7 @@ impl<'a> ConstructorStringParser<'a> {
     let previous_index = self.token_index - 1;
     #[allow(clippy::absurd_extreme_comparisons)]
     if previous_index < 0 {
-      // TODO: move to isize
+      // TODO: can self.token_index ever be negative?
       return true;
     }
     let previous_token = self.get_safe_token(previous_index);
@@ -168,13 +168,9 @@ impl<'a> ConstructorStringParser<'a> {
     assert!(self.token_index < self.token_list.len());
     let token = &self.token_list[self.token_index];
     let component_start_token = self.get_safe_token(self.component_start);
-    // TODO: simplify
-    let new_length = token.index - component_start_token.index;
     self
       .input
-      .get(
-        component_start_token.index..(component_start_token.index + new_length),
-      )
+      .get(component_start_token.index..token.index)
       .unwrap()
       .to_string()
   }

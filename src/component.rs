@@ -91,7 +91,7 @@ fn generate_regular_expression_and_name_list(
       continue;
     }
 
-    assert!(!part.name.is_empty()); // TODO: can be null?
+    assert!(!part.name.is_empty()); // TODO: https://github.com/WICG/urlpattern/issues/95
     name_list.push(part.name.clone());
     let regexp_value = if part.kind == PartType::SegmentWildcard {
       options.generate_segment_wildcard_regexp()
@@ -153,7 +153,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
     }
     let needs_grouping = !part.suffix.is_empty()
       || (part.prefix.is_empty() && part.prefix != options.prefix_code_point);
-    assert!(!part.name.is_empty()); // TODO: can be null?
+    assert!(!part.name.is_empty()); // TODO: https://github.com/WICG/urlpattern/issues/95
     let custom_name = !part.name.chars().next().unwrap().is_ascii();
     if needs_grouping {
       result.push('{');
