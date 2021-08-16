@@ -133,11 +133,9 @@ pub fn tokenize(
     code_point: None,
   };
 
+  // TODO: https://infra.spec.whatwg.org/#string-code-point-length
   while tokenizer.index < tokenizer.input.len() {
-    // TODO: https://infra.spec.whatwg.org/#string-code-point-length
     tokenizer.get_next_codepoint();
-
-    // TODO: remove unnecessary continues
 
     if tokenizer.code_point == Some('*') {
       tokenizer.add_token_with_default_pos_and_len(TokenType::Asterisk);
@@ -178,7 +176,7 @@ pub fn tokenize(
       while name_pos < tokenizer.input.len() {
         tokenizer.seek_and_get_next_codepoint(name_pos);
         let valid_codepoint = is_valid_name_codepoint(
-          tokenizer.code_point.unwrap(), // TODO: dont unwrap
+          tokenizer.code_point.unwrap(),
           name_pos == name_start,
         );
         if !valid_codepoint {
@@ -205,14 +203,9 @@ pub fn tokenize(
       // TODO: input code point length
       while regexp_pos < tokenizer.input.len() {
         tokenizer.seek_and_get_next_codepoint(regexp_pos);
-        // TODO: dont code_point unwrap
-        // TODO: simplify 2 if statements
-        if !tokenizer.code_point.unwrap().is_ascii() {
-          tokenizer.process_tokenizing_error(regexp_start, tokenizer.index)?;
-          error = true;
-          break;
-        }
-        if regexp_pos == regexp_start && tokenizer.code_point == Some('?') {
+        if !tokenizer.code_point.unwrap().is_ascii()
+          || (regexp_pos == regexp_start && tokenizer.code_point == Some('?'))
+        {
           tokenizer.process_tokenizing_error(regexp_start, tokenizer.index)?;
           error = true;
           break;
@@ -226,7 +219,6 @@ pub fn tokenize(
             break;
           }
           tokenizer.get_next_codepoint();
-          // TODO: dont code_point unwrap
           if !tokenizer.code_point.unwrap().is_ascii() {
             tokenizer
               .process_tokenizing_error(regexp_start, tokenizer.index)?;
