@@ -6,9 +6,12 @@ mod constructor_parser;
 mod parser;
 mod tokenizer;
 
-#[cfg(feature = "serde")]
+#[doc(hidden)]
+pub use component::Component;
+
+#[cfg(feature = "serde_")]
 use serde::Deserialize;
-#[cfg(feature = "serde")]
+#[cfg(feature = "serde_")]
 use serde::Serialize;
 
 use derive_more::Display;
@@ -25,7 +28,7 @@ pub enum ParseError {
 impl std::error::Error for ParseError {}
 
 /// The structured input used to create a URL pattern.
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde_", derive(Deserialize, Serialize))]
 pub struct UrlPatternInit {
   pub protocol: Option<String>,
   pub username: Option<String>,
@@ -120,7 +123,7 @@ impl UrlPatternInit {
 
 // TODO: maybe specify baseURL only for String variant?
 /// Input for URLPattern functions.
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize), serde(untagged))]
+#[cfg_attr(feature = "serde_", derive(Deserialize, Serialize), serde(untagged))]
 pub enum URLPatternInput {
   String(String),
   URLPatternInit(UrlPatternInit),
@@ -128,15 +131,24 @@ pub enum URLPatternInput {
 
 // Ref: https://wicg.github.io/urlpattern/#urlpattern
 /// A UrlPattern that can be matched against.
+#[cfg_attr(feature = "serde_", derive(Deserialize, Serialize))]
 pub struct UrlPattern {
-  protocol: component::Component,
-  username: component::Component,
-  password: component::Component,
-  hostname: component::Component,
-  port: component::Component,
-  pathname: component::Component,
-  search: component::Component,
-  hash: component::Component,
+  #[doc(hidden)]
+  pub protocol: Component,
+  #[doc(hidden)]
+  pub username: Component,
+  #[doc(hidden)]
+  pub password: Component,
+  #[doc(hidden)]
+  pub hostname: Component,
+  #[doc(hidden)]
+  pub port: Component,
+  #[doc(hidden)]
+  pub pathname: Component,
+  #[doc(hidden)]
+  pub search: Component,
+  #[doc(hidden)]
+  pub hash: Component,
 }
 
 impl UrlPattern {
@@ -178,27 +190,27 @@ impl UrlPattern {
     }
 
     Ok(UrlPattern {
-      protocol: component::Component::compile(
+      protocol: Component::compile(
         processed_init.protocol,
         canonicalize_and_process::canonicalize_protocol,
         &Default::default(),
       )?,
-      username: component::Component::compile(
+      username: Component::compile(
         processed_init.username,
         canonicalize_and_process::canonicalize_username,
         &Default::default(),
       )?,
-      password: component::Component::compile(
+      password: Component::compile(
         processed_init.password,
         canonicalize_and_process::canonicalize_password,
         &Default::default(),
       )?,
-      hostname: component::Component::compile(
+      hostname: Component::compile(
         processed_init.hostname,
         canonicalize_and_process::canonicalize_hostname,
         &parser::Options::hostname(),
       )?,
-      port: component::Component::compile(
+      port: Component::compile(
         processed_init.port,
         canonicalize_and_process::canonicalize_port,
         &Default::default(),
@@ -209,12 +221,12 @@ If the result of running protocol component matches a special scheme given this'
 Else set this's pathname component to the result of compiling a component given processedInit["pathname"], canonicalize a cannot-be-a-base-URL pathname, and default options
 "#
       ),
-      search: component::Component::compile(
+      search: Component::compile(
         processed_init.search,
         canonicalize_and_process::canonicalize_search,
         &Default::default(),
       )?,
-      hash: component::Component::compile(
+      hash: Component::compile(
         processed_init.hash,
         canonicalize_and_process::canonicalize_hash,
         &Default::default(),
@@ -389,7 +401,7 @@ Else set this's pathname component to the result of compiling a component given 
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult
 // TODO: doc
-#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(feature = "serde_", derive(Serialize))]
 pub struct URLPatternResult {
   pub inputs: Vec<URLPatternInput>,
 
@@ -405,7 +417,7 @@ pub struct URLPatternResult {
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatterncomponentresult
 // TODO: doc
-#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(feature = "serde_", derive(Serialize))]
 pub struct URLPatternComponentResult {
   pub input: String,
   pub groups: std::collections::HashMap<String, String>,

@@ -8,11 +8,18 @@ use crate::parser::PartType;
 use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
 use crate::ParseError;
 
+#[cfg(feature = "serde_")]
+use serde::Deserialize;
+#[cfg(feature = "serde_")]
+use serde::Serialize;
+
 // Ref: https://wicg.github.io/urlpattern/#component
+#[cfg_attr(feature = "serde_", derive(Deserialize, Serialize))]
 pub struct Component {
   pub pattern_string: String,
+  #[cfg_attr(feature = "serde_", serde(with = "serde_regex"))]
   pub regexp: regex::Regex,
-  group_name_list: Vec<String>,
+  pub group_name_list: Vec<String>,
 }
 
 impl Component {
