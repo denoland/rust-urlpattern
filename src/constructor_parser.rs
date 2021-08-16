@@ -170,7 +170,7 @@ impl<'a> ConstructorStringParser<'a> {
     let component_start_token = self.get_safe_token(self.component_start);
     self
       .input
-      .get(component_start_token.index..token.index)
+      .get(component_start_token.index..=token.index) // TODO: check & codepoint
       .unwrap()
       .to_string()
   }
