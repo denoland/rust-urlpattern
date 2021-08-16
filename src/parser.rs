@@ -152,7 +152,7 @@ where
   fn try_consume_modifier_token(&mut self) -> Option<Token> {
     self
       .try_consume_token(TokenType::OtherModifier)
-      .or(self.try_consume_token(TokenType::Asterisk))
+      .or_else(|| self.try_consume_token(TokenType::Asterisk))
   }
 
   // Ref: https://wicg.github.io/urlpattern/#maybe-add-a-part-from-the-pending-fixed-value

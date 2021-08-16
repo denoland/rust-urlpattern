@@ -289,5 +289,5 @@ pub fn tokenize(
 // Ref: https://wicg.github.io/urlpattern/#is-a-valid-name-code-point
 #[inline]
 fn is_valid_name_codepoint(_code_point: char, _first: bool) -> bool {
-  todo!()
+  todo!(" issue: there is a unicode_xid crate, but sadly that's xid, whereas the spec asks for id")
 }

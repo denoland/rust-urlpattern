@@ -29,6 +29,7 @@ impl std::error::Error for ParseError {}
 
 /// The structured input used to create a URL pattern.
 #[cfg_attr(feature = "serde_", derive(Deserialize, Serialize))]
+#[derive(Clone)]
 pub struct UrlPatternInit {
   pub protocol: Option<String>,
   pub username: Option<String>,
@@ -126,6 +127,7 @@ impl UrlPatternInit {
 // TODO: maybe specify baseURL only for String variant?
 /// Input for URLPattern functions.
 #[cfg_attr(feature = "serde_", derive(Deserialize, Serialize), serde(untagged))]
+#[derive(Clone)]
 pub enum URLPatternInput {
   String(String),
   URLPatternInit(UrlPatternInit),
@@ -305,7 +307,7 @@ impl UrlPattern {
     let mut pathname = String::new();
     let mut search = String::new();
     let mut hash = String::new();
-    let mut inputs = vec![input];
+    let mut inputs = vec![input.clone()];
     match input {
       URLPatternInput::URLPatternInit(input) => {
         if base_url_string.is_some() {
@@ -375,15 +377,14 @@ impl UrlPattern {
     let search_exec_result = self.search.regexp.captures(&search);
     let hash_exec_result = self.hash.regexp.captures(&hash);
 
-    if protocol_exec_result
-      .and(username_exec_result)
-      .and(password_exec_result)
-      .and(hostname_exec_result)
-      .and(port_exec_result)
-      .and(pathname_exec_result)
-      .and(search_exec_result)
-      .and(hash_exec_result)
-      .is_none()
+    if protocol_exec_result.is_none()
+      || username_exec_result.is_none()
+      || password_exec_result.is_none()
+      || hostname_exec_result.is_none()
+      || port_exec_result.is_none()
+      || pathname_exec_result.is_none()
+      || search_exec_result.is_none()
+      || hash_exec_result.is_none()
     {
       Ok(None)
     } else {
@@ -391,28 +392,28 @@ impl UrlPattern {
         inputs,
         protocol: self
           .protocol
-          .create_match_result(protocol, protocol_exec_result.unwrap()),
+          .create_match_result(protocol.clone(), protocol_exec_result.unwrap()),
         username: self
           .username
-          .create_match_result(username, username_exec_result.unwrap()),
+          .create_match_result(username.clone(), username_exec_result.unwrap()),
         password: self
           .password
-          .create_match_result(password, password_exec_result.unwrap()),
+          .create_match_result(password.clone(), password_exec_result.unwrap()),
         hostname: self
           .hostname
-          .create_match_result(hostname, hostname_exec_result.unwrap()),
+          .create_match_result(hostname.clone(), hostname_exec_result.unwrap()),
         port: self
           .port
-          .create_match_result(port, port_exec_result.unwrap()),
+          .create_match_result(port.clone(), port_exec_result.unwrap()),
         pathname: self
           .pathname
-          .create_match_result(pathname, pathname_exec_result.unwrap()),
+          .create_match_result(pathname.clone(), pathname_exec_result.unwrap()),
         search: self
           .search
-          .create_match_result(search, search_exec_result.unwrap()),
+          .create_match_result(search.clone(), search_exec_result.unwrap()),
         hash: self
           .hash
-          .create_match_result(hash, hash_exec_result.unwrap()),
+          .create_match_result(hash.clone(), hash_exec_result.unwrap()),
       }))
     }
   }

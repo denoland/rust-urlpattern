@@ -70,6 +70,7 @@ impl Component {
       input,
       groups: self
         .group_name_list
+        .clone()
         .into_iter()
         .zip(iter.map(|e| e.unwrap().as_str().to_string())) // TODO: no unwrap
         .collect(),
@@ -79,7 +80,7 @@ impl Component {
 
 // Ref: https://wicg.github.io/urlpattern/#generate-a-regular-expression-and-name-list
 fn generate_regular_expression_and_name_list(
-  part_list: &Vec<Part>,
+  part_list: &[Part],
   options: &Options,
 ) -> (String, Vec<String>) {
   let mut result = String::from("^");
