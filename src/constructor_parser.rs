@@ -158,8 +158,8 @@ impl<'a> ConstructorStringParser<'a> {
     }
 
     self.state = state;
-    self.component_start = self.token_index + skip;
-    self.token_index += skip; // TODO: https://github.com/WICG/urlpattern/issues/93
+    self.token_index += skip;
+    self.component_start = self.token_index;
     self.token_increment = 0;
   }
 
