@@ -120,7 +120,7 @@ impl UrlPatternInit {
 
 // TODO: maybe specify baseURL only for String variant?
 /// Input for URLPattern functions.
-#[cfg_attr(feature = "serde", derive(Serialize), serde(untagged))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize), serde(untagged))]
 pub enum URLPatternInput {
   String(String),
   URLPatternInit(UrlPatternInit),
