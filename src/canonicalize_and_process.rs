@@ -1,10 +1,12 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+// NOTE to all: the code in this crate sometimes slighlty diverges from the
+// precise wording of the spec, because rust-url does not expose all the
+// routines exactly as the spec wants. The end behaviour should be identical.
+
 use crate::ParseError;
 
 // https://wicg.github.io/urlpattern/#canon-encoding-callbacks
-
-// TODO: dont use dummy.test, expose functions in url crate
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-protocol
 pub fn canonicalize_protocol(value: &str) -> Result<String, ParseError> {
@@ -35,40 +37,52 @@ pub fn canonicalize_hostname(value: &str) -> Result<String, ParseError> {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-port
-pub fn canonicalize_port(_value: &str) -> Result<String, ParseError> {
-  todo!()
-}
-
-// Ref: https://wicg.github.io/urlpattern/#canonicalize-a-port
-pub fn canonicalize_port_with_protocol(
-  _value: &str,
-  _protocol: &str,
+pub fn canonicalize_port(
+  value: &str,
+  protocol: Option<&str>,
 ) -> Result<String, ParseError> {
-  todo!()
+  if let Some(protocol) = protocol {
+    let mut url =
+      url::Url::parse(&format!("{}://dummy.test", protocol)).unwrap(); // TODO: dont unwrap, instead ParseError
+    url::quirks::set_port(&mut url, value).unwrap(); // TODO: dont unwrap, instead ParseError
+    Ok(url::quirks::port(&url).to_string())
+  } else {
+    // If no protocol is given, the url can not have a username/password/port, so
+    // we can always return the empty string
+    Ok("".to_string())
+  }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-standard-pathname
 pub fn canonicalize_standard_pathname(
-  _value: &str,
+  value: &str,
 ) -> Result<String, ParseError> {
-  todo!()
+  let mut url = url::Url::parse("http://dummy.test").unwrap();
+  url.set_path(value);
+  Ok(url::quirks::pathname(&url).to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-cannot-be-a-base-url-pathname
-pub fn canonicalize_invalid_baseurl_pathname(
-  _value: &str,
+pub fn canonicalize_cannot_be_a_base_url_pathname(
+  value: &str,
 ) -> Result<String, ParseError> {
-  todo!()
+  let mut url = url::Url::parse("data:dummy,test").unwrap();
+  url.set_path(value);
+  Ok(url::quirks::pathname(&url).to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-search
-pub fn canonicalize_search(_value: &str) -> Result<String, ParseError> {
-  todo!()
+pub fn canonicalize_search(value: &str) -> Result<String, ParseError> {
+  let mut url = url::Url::parse("http://dummy.test").unwrap();
+  url.set_query(Some(value));
+  Ok(url.query().unwrap_or("").to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-search
-pub fn canonicalize_hash(_value: &str) -> Result<String, ParseError> {
-  todo!()
+pub fn canonicalize_hash(value: &str) -> Result<String, ParseError> {
+  let mut url = url::Url::parse("http://dummy.test").unwrap();
+  url.set_fragment(Some(value));
+  Ok(url.fragment().unwrap_or("").to_string())
 }
 
 #[derive(Eq, PartialEq)]
@@ -132,18 +146,32 @@ pub fn process_hostname_init(
 
 // Ref: https://wicg.github.io/urlpattern/#process-port-for-init
 pub fn process_port_init(
-  _value: &str,
-  _kind: &Option<ProcessType>,
+  port_value: &str,
+  protocol_value: &str,
+  kind: &Option<ProcessType>,
 ) -> Result<String, ParseError> {
-  todo!()
+  if kind == &Some(ProcessType::Pattern) {
+    Ok(port_value.to_string())
+  } else {
+    canonicalize_port(port_value, Some(protocol_value))
+  }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-pathname-for-init
 pub fn process_pathname_init(
-  _value: &str,
-  _kind: &Option<ProcessType>,
+  pathname_value: &str,
+  protocol_value: &str,
+  kind: &Option<ProcessType>,
 ) -> Result<String, ParseError> {
-  todo!()
+  if kind == &Some(ProcessType::Pattern) {
+    Ok(pathname_value.to_string())
+  } else {
+    if is_special_scheme(protocol_value) {
+      canonicalize_standard_pathname(pathname_value)
+    } else {
+      canonicalize_cannot_be_a_base_url_pathname(pathname_value)
+    }
+  }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-search-for-init
@@ -177,5 +205,21 @@ pub fn process_hash_init(
     Ok(stripped_value.to_string())
   } else {
     canonicalize_hash(stripped_value)
+  }
+}
+
+pub fn is_special_scheme(scheme: &str) -> bool {
+  matches!(scheme, "http" | "https" | "ws" | "wss" | "ftp" | "file")
+}
+
+pub fn special_scheme_default_port(scheme: &str) -> Option<&'static str> {
+  match scheme {
+    "http" => Some("80"),
+    "https" => Some("443"),
+    "ws" => Some("80"),
+    "wss" => Some("443"),
+    "ftp" => Some("21"),
+    "file" => None,
+    _ => None,
   }
 }

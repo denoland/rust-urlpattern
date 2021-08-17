@@ -6,6 +6,8 @@ mod constructor_parser;
 mod parser;
 mod tokenizer;
 
+use canonicalize_and_process::is_special_scheme;
+use canonicalize_and_process::special_scheme_default_port;
 #[doc(hidden)]
 pub use component::Component;
 
@@ -189,14 +191,20 @@ impl UrlPattern {
       None,
     )?;
 
-    // TODO: expose parts of url crate?
     //  If processedInit["protocol"] is a special scheme and processedInit["port"] is its corresponding default port
-    if processed_init.protocol {
-      processed_init.port = Some(String::new());
+    if let Some(protocol) = &processed_init.protocol {
+      if is_special_scheme(&protocol) {
+        let default_port = special_scheme_default_port(&protocol);
+        if default_port == processed_init.port.as_deref() {
+          processed_init.port = Some(String::new())
+        }
+      }
     }
 
+    let protocol_str = processed_init.protocol.clone().unwrap();
+
     let protocol = Component::compile(
-      &processed_init.protocol.unwrap(),
+      &protocol_str,
       canonicalize_and_process::canonicalize_protocol,
       Default::default(),
     )?;
@@ -209,7 +217,7 @@ impl UrlPattern {
     } else {
       Component::compile(
         &processed_init.pathname.unwrap(),
-        canonicalize_and_process::canonicalize_invalid_baseurl_pathname,
+        canonicalize_and_process::canonicalize_cannot_be_a_base_url_pathname,
         Default::default(),
       )?
     };
@@ -233,7 +241,9 @@ impl UrlPattern {
       )?,
       port: Component::compile(
         &processed_init.port.unwrap(),
-        canonicalize_and_process::canonicalize_port,
+        |port| {
+          canonicalize_and_process::canonicalize_port(port, Some(&protocol_str))
+        },
         Default::default(),
       )?,
       pathname,
