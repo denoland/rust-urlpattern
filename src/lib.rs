@@ -22,6 +22,7 @@ pub enum ParseError {
   Tokenize,
   Url(url::ParseError),
   RegEx(regex::Error),
+  DuplicateName,
   SomeRandomOtherError, // TODO: remove
 }
 

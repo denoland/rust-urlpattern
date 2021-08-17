@@ -241,6 +241,9 @@ where
       name = self.next_numeric_name.to_string();
       self.next_numeric_name += 1;
     }
+    if self.is_duplicate_name(&name) {
+      return Err(ParseError::DuplicateName);
+    }
     let encoded_prefix = (self.encoding_callback)(prefix)?;
     let encoded_suffix = (self.encoding_callback)(suffix)?;
     self.part_list.push(Part {
@@ -253,6 +256,11 @@ where
     });
 
     Ok(())
+  }
+
+  // Ref: https://wicg.github.io/urlpattern/#is-a-duplicate-name
+  fn is_duplicate_name(&self, name: &str) -> bool {
+    self.part_list.iter().any(|p| p.name == name)
   }
 
   // Ref: https://wicg.github.io/urlpattern/#consume-text
