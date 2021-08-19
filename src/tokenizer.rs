@@ -288,6 +288,11 @@ pub fn tokenize(
 
 // Ref: https://wicg.github.io/urlpattern/#is-a-valid-name-code-point
 #[inline]
-fn is_valid_name_codepoint(_code_point: char, _first: bool) -> bool {
-  todo!("issue: there is a unicode_xid crate, but sadly that's xid, whereas the spec asks for id")
+fn is_valid_name_codepoint(code_point: char, first: bool) -> bool {
+  if first {
+    unic_ucd_ident::is_id_start(code_point) || matches!(code_point, '$' | '_')
+  } else {
+    unic_ucd_ident::is_id_continue(code_point)
+      || matches!(code_point, '$' | '\u{200C}' | '\u{200D}')
+  }
 }
