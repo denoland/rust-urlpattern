@@ -29,7 +29,7 @@ pub enum ParseError {
 impl std::error::Error for ParseError {}
 
 /// The structured input used to create a URL pattern.
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Default)]
 pub struct UrlPatternInit {
   pub protocol: Option<String>,
   pub username: Option<String>,
@@ -430,24 +430,88 @@ impl UrlPattern {
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult
 // TODO: doc
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct URLPatternResult {
+  #[serde(skip_deserializing)]
   pub inputs: Vec<URLPatternInput>,
 
+  #[serde(default)]
   pub protocol: URLPatternComponentResult,
+  #[serde(default)]
   pub username: URLPatternComponentResult,
+  #[serde(default)]
   pub password: URLPatternComponentResult,
+  #[serde(default)]
   pub hostname: URLPatternComponentResult,
+  #[serde(default)]
   pub port: URLPatternComponentResult,
+  #[serde(default)]
   pub pathname: URLPatternComponentResult,
+  #[serde(default)]
   pub search: URLPatternComponentResult,
+  #[serde(default)]
   pub hash: URLPatternComponentResult,
 }
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatterncomponentresult
 // TODO: doc
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct URLPatternComponentResult {
   pub input: String,
   pub groups: std::collections::HashMap<String, String>,
+}
+
+#[cfg(test)]
+mod tests {
+  use serde::Deserialize;
+
+  use super::URLPatternInput;
+  use super::URLPatternResult;
+
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  pub enum ExpectedMatch {
+    String(String),
+    URLPatternResult(URLPatternResult),
+  }
+
+  #[derive(Deserialize)]
+  struct TestCase {
+    pattern: Vec<URLPatternInput>,
+    #[serde(default)]
+    inputs: Vec<URLPatternInput>,
+    expected_obj: Option<URLPatternInput>,
+    expected_match: Option<ExpectedMatch>,
+  }
+
+  fn test_case(case: TestCase) {
+    let input = case.pattern.get(0).unwrap().clone();
+    let base_url = case.pattern.get(1).map(|input| match input {
+      crate::URLPatternInput::String(str) => str.clone(),
+      crate::URLPatternInput::URLPatternInit(_) => unreachable!(),
+    });
+
+    let res = super::UrlPattern::parse(input.clone(), base_url);
+    let expected_obj = match case.expected_obj {
+      Some(URLPatternInput::String(s)) if s == "error" => {
+        assert!(res.is_err());
+        return;
+      }
+      Some(URLPatternInput::String(_)) => unreachable!(),
+      Some(URLPatternInput::URLPatternInit(init)) => init,
+      None => super::UrlPatternInit::default(),
+    };
+    let pattern = res.unwrap();
+
+    // TODO(lucacasonato): actually implement logic here!
+  }
+
+  #[test]
+  fn test_cases() {
+    let testdata = include_str!("./testdata/urlpatterntestdata.json");
+    let cases: Vec<TestCase> = serde_json::from_str(testdata).unwrap();
+    for case in cases {
+      test_case(case);
+    }
+  }
 }
