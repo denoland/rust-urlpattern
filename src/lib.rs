@@ -29,7 +29,7 @@ pub enum ParseError {
 impl std::error::Error for ParseError {}
 
 /// The structured input used to create a URL pattern.
-#[derive(Deserialize, Serialize, Clone, Default)]
+#[derive(Deserialize, Serialize, Clone, Default, Debug)]
 pub struct UrlPatternInit {
   pub protocol: Option<String>,
   pub username: Option<String>,
@@ -135,7 +135,7 @@ impl UrlPatternInit {
 
 // TODO: maybe specify baseURL directly in String variant? (baseURL in UrlPatternInit context will error per spec)
 /// Input for URLPattern functions.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 pub enum URLPatternInput {
   String(String),
@@ -493,6 +493,8 @@ mod tests {
   }
 
   fn test_case(case: TestCase) {
+    println!("case {:?}", case.pattern);
+
     let input = case.pattern.get(0).unwrap().clone();
     let base_url = case.pattern.get(1).map(|input| match input {
       crate::URLPatternInput::String(str) => str.clone(),
