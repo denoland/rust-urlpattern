@@ -81,7 +81,7 @@ impl UrlPatternInit {
       result.hostname =
         Some(base_url.host_str().unwrap_or_default().to_string());
       result.port = Some(base_url.port().unwrap_or_default().to_string()); // TODO: port_or_known_default?
-      todo!("pathname");
+      result.pathname = Some(url::quirks::pathname(&base_url).to_string());
       result.search = Some(base_url.query().unwrap_or("").to_string());
       result.hash = Some(base_url.fragment().unwrap_or("").to_string());
     }
@@ -106,11 +106,19 @@ impl UrlPatternInit {
         hostname, &kind,
       )?);
     }
-    if let Some(_port) = &self.port {
-      todo!()
+    if let Some(port) = &self.port {
+      result.port = Some(canonicalize_and_process::process_port_init(
+        port,
+        result.protocol.as_ref().map(|s| &**s),
+        &kind,
+      )?);
     }
-    if let Some(_pathname) = &self.pathname {
-      todo!()
+    if let Some(pathname) = &self.pathname {
+      result.pathname = Some(canonicalize_and_process::process_pathname_init(
+        pathname,
+        result.protocol.as_ref().map(|s| &**s),
+        &kind,
+      )?);
     }
     if let Some(search) = &self.search {
       result.search = Some(canonicalize_and_process::process_search_init(

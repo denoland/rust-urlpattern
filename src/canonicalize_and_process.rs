@@ -147,29 +147,30 @@ pub fn process_hostname_init(
 // Ref: https://wicg.github.io/urlpattern/#process-port-for-init
 pub fn process_port_init(
   port_value: &str,
-  protocol_value: &str,
+  protocol_value: Option<&str>,
   kind: &Option<ProcessType>,
 ) -> Result<String, ParseError> {
   if kind == &Some(ProcessType::Pattern) {
     Ok(port_value.to_string())
   } else {
-    canonicalize_port(port_value, Some(protocol_value))
+    canonicalize_port(port_value, protocol_value)
   }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#process-pathname-for-init
 pub fn process_pathname_init(
   pathname_value: &str,
-  protocol_value: &str,
+  protocol_value: Option<&str>,
   kind: &Option<ProcessType>,
 ) -> Result<String, ParseError> {
   if kind == &Some(ProcessType::Pattern) {
     Ok(pathname_value.to_string())
   } else {
-    if is_special_scheme(protocol_value) {
-      canonicalize_standard_pathname(pathname_value)
-    } else {
-      canonicalize_cannot_be_a_base_url_pathname(pathname_value)
+    match protocol_value {
+      Some(protocol) if is_special_scheme(protocol) => {
+        canonicalize_standard_pathname(pathname_value)
+      }
+      _ => canonicalize_cannot_be_a_base_url_pathname(pathname_value),
     }
   }
 }
