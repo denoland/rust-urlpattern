@@ -108,7 +108,11 @@ fn generate_regular_expression_and_name_list(
     };
 
     if part.prefix.is_empty() && part.suffix.is_empty() {
-      result.push_str(&format!("({}){}", regexp_value, part.modifier));
+      if part.modifier == PartModifier::None {
+        result.push_str(&format!("({})", regexp_value));
+      } else {
+        result.push_str(&format!("((?:{}){})", regexp_value, part.modifier));
+      }
       continue;
     }
     if matches!(part.modifier, PartModifier::None | PartModifier::Optional) {
