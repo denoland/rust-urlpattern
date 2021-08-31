@@ -94,14 +94,14 @@ pub enum ProcessType {
 // Ref: https://wicg.github.io/urlpattern/#process-protocol-for-init
 pub fn process_protocol_init(
   value: &str,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
   let stripped_value = if value.starts_with(':') {
     value.get(1..).unwrap()
   } else {
     value
   };
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(stripped_value.to_string())
   } else {
     canonicalize_protocol(stripped_value)
@@ -111,9 +111,9 @@ pub fn process_protocol_init(
 // Ref: https://wicg.github.io/urlpattern/#process-username-for-init
 pub fn process_username_init(
   value: &str,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(value.to_string())
   } else {
     canonicalize_username(value)
@@ -123,9 +123,9 @@ pub fn process_username_init(
 // Ref: https://wicg.github.io/urlpattern/#process-password-for-init
 pub fn process_password_init(
   value: &str,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(value.to_string())
   } else {
     canonicalize_password(value)
@@ -135,9 +135,9 @@ pub fn process_password_init(
 // Ref: https://wicg.github.io/urlpattern/#process-hostname-for-init
 pub fn process_hostname_init(
   value: &str,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(value.to_string())
   } else {
     canonicalize_hostname(value)
@@ -148,9 +148,9 @@ pub fn process_hostname_init(
 pub fn process_port_init(
   port_value: &str,
   protocol_value: Option<&str>,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(port_value.to_string())
   } else {
     canonicalize_port(port_value, protocol_value)
@@ -161,9 +161,9 @@ pub fn process_port_init(
 pub fn process_pathname_init(
   pathname_value: &str,
   protocol_value: Option<&str>,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(pathname_value.to_string())
   } else {
     match protocol_value {
@@ -178,14 +178,14 @@ pub fn process_pathname_init(
 // Ref: https://wicg.github.io/urlpattern/#process-search-for-init
 pub fn process_search_init(
   value: &str,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
   let stripped_value = if value.starts_with('?') {
     value.get(1..).unwrap()
   } else {
     value
   };
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(stripped_value.to_string())
   } else {
     canonicalize_search(stripped_value)
@@ -195,14 +195,14 @@ pub fn process_search_init(
 // Ref: https://wicg.github.io/urlpattern/#process-hash-for-init
 pub fn process_hash_init(
   value: &str,
-  kind: &Option<ProcessType>,
+  kind: &ProcessType,
 ) -> Result<String, ParseError> {
   let stripped_value = if value.starts_with('#') {
     value.get(1..).unwrap()
   } else {
     value
   };
-  if kind == &Some(ProcessType::Pattern) {
+  if kind == &ProcessType::Pattern {
     Ok(stripped_value.to_string())
   } else {
     canonicalize_hash(stripped_value)

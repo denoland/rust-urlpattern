@@ -48,7 +48,7 @@ impl UrlPatternInit {
   #[allow(clippy::too_many_arguments)]
   fn process(
     &self,
-    kind: Option<canonicalize_and_process::ProcessType>,
+    kind: canonicalize_and_process::ProcessType,
     protocol: Option<String>,
     username: Option<String>,
     password: Option<String>,
@@ -70,21 +70,28 @@ impl UrlPatternInit {
       base_url: None,
     };
 
-    if let Some(base_url) = &self.base_url {
-      let base_url = url::Url::parse(base_url).map_err(ParseError::Url)?;
+    let base_url = if let Some(self_base_url) = &self.base_url {
+      let parsed_base_url =
+        url::Url::parse(self_base_url).map_err(ParseError::Url)?;
 
       // TODO: check if these are correct
-      result.protocol = Some(base_url.scheme().to_string());
-      result.username = Some(base_url.username().to_string());
+      result.protocol = Some(parsed_base_url.scheme().to_string());
+      result.username = Some(parsed_base_url.username().to_string());
       result.password =
-        Some(base_url.password().unwrap_or_default().to_string());
+        Some(parsed_base_url.password().unwrap_or_default().to_string());
       result.hostname =
-        Some(base_url.host_str().unwrap_or_default().to_string());
-      result.port = Some(base_url.port().unwrap_or_default().to_string()); // TODO: port_or_known_default?
-      result.pathname = Some(url::quirks::pathname(&base_url).to_string());
-      result.search = Some(base_url.query().unwrap_or("").to_string());
-      result.hash = Some(base_url.fragment().unwrap_or("").to_string());
-    }
+        Some(parsed_base_url.host_str().unwrap_or_default().to_string());
+      result.port =
+        Some(parsed_base_url.port().unwrap_or_default().to_string()); // TODO: port_or_known_default?
+      result.pathname =
+        Some(url::quirks::pathname(&parsed_base_url).to_string());
+      result.search = Some(parsed_base_url.query().unwrap_or("").to_string());
+      result.hash = Some(parsed_base_url.fragment().unwrap_or("").to_string());
+
+      Some(parsed_base_url)
+    } else {
+      None
+    };
 
     if let Some(protocol) = &self.protocol {
       result.protocol = Some(canonicalize_and_process::process_protocol_init(
@@ -114,8 +121,25 @@ impl UrlPatternInit {
       )?);
     }
     if let Some(pathname) = &self.pathname {
+      result.pathname = Some(pathname.clone());
+
+      if let Some(base_url) = base_url {
+        if !base_url.cannot_be_a_base() && is_absolute_pathname(pathname, &kind)
+        {
+          // TODO: Let slash index be the index of the last U+002F (/) code point found in baseURL’s API pathname string, interpreted as a sequence of code points, or null if there are no instances of the code point.
+          let slash_index = Some(0);
+
+          if let Some(slash_index) = slash_index {
+            // TODO: Let new pathname be the code point substring from indices 0 to slash index inclusive within baseURL ’s API pathname string .
+            let new_pathname = "";
+            result.pathname =
+              Some(format!("{}{}", new_pathname, result.pathname.unwrap()))
+          }
+        }
+      }
+
       result.pathname = Some(canonicalize_and_process::process_pathname_init(
-        pathname,
+        &result.pathname.unwrap(),
         result.protocol.as_ref().map(|s| &**s),
         &kind,
       )?);
@@ -131,6 +155,36 @@ impl UrlPatternInit {
     }
     Ok(result)
   }
+}
+
+// Ref: https://wicg.github.io/urlpattern/#is-an-absolute-pathname
+fn is_absolute_pathname(
+  input: &str,
+  kind: &canonicalize_and_process::ProcessType,
+) -> bool {
+  if input.is_empty() {
+    return false;
+  }
+  if input.chars().next().unwrap() == '/' {
+    return true;
+  }
+  if kind == &canonicalize_and_process::ProcessType::Url {
+    return false;
+  }
+  // TODO: input code point length
+  if input.len() < 2 {
+    return false;
+  }
+
+  let mut chars = input.chars();
+  let x = (chars.next().unwrap(), chars.next().unwrap());
+  match x {
+    ('\\', '/') => return true,
+    ('{', '/') => return true,
+    _ => {}
+  }
+
+  true
 }
 
 // TODO: maybe specify baseURL directly in String variant? (baseURL in UrlPatternInit context will error per spec)
@@ -185,7 +239,7 @@ impl UrlPattern {
     };
 
     let mut processed_init = init.process(
-      Some(canonicalize_and_process::ProcessType::Pattern),
+      canonicalize_and_process::ProcessType::Pattern,
       None,
       None,
       None,
@@ -331,7 +385,7 @@ impl UrlPattern {
           return Err(ParseError::SomeRandomOtherError); // TODO: proper error
         }
         if let Ok(apply_result) = input.process(
-          Some(canonicalize_and_process::ProcessType::Url),
+          canonicalize_and_process::ProcessType::Url,
           Some(protocol),
           Some(username),
           Some(password),
