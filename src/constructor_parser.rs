@@ -30,6 +30,7 @@ struct ConstructorStringParser<'a> {
   token_index: usize,
   token_increment: usize,
   group_depth: usize,
+  hostname_ipv6_bracket_depth: usize,
   protocol_matches_special_scheme: bool,
   state: ConstructorStringParserState,
 }
@@ -219,6 +220,18 @@ impl<'a> ConstructorStringParser<'a> {
       self.is_non_special_pattern_char(self.token_index + 2, "/")
     }
   }
+
+  // Ref: https://wicg.github.io/urlpattern/#is-an-ipv6-open
+  #[inline]
+  fn is_ipv6_open(&self) -> bool {
+    self.is_non_special_pattern_char(self.token_index, "[")
+  }
+
+  // Ref: https://wicg.github.io/urlpattern/#is-an-ipv6-close
+  #[inline]
+  fn is_ipv6_close(&self) -> bool {
+    self.is_non_special_pattern_char(self.token_index, "]")
+  }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#parse-a-constructor-string
@@ -246,6 +259,7 @@ pub fn parse_constructor_string(
     token_index: 0,
     token_increment: 1,
     group_depth: 0,
+    hostname_ipv6_bracket_depth: 0,
     protocol_matches_special_scheme: false,
     state: ConstructorStringParserState::Init,
   };
@@ -342,7 +356,13 @@ pub fn parse_constructor_string(
         }
       }
       ConstructorStringParserState::Hostname => {
-        if parser.is_port_prefix() {
+        if parser.is_ipv6_open() {
+          parser.hostname_ipv6_bracket_depth += 1;
+        } else if parser.is_ipv6_close() {
+          parser.hostname_ipv6_bracket_depth -= 1;
+        } else if parser.is_port_prefix()
+          && parser.hostname_ipv6_bracket_depth == 0
+        {
           parser.change_state(ConstructorStringParserState::Port, 1);
         } else if parser.is_pathname_start() {
           parser.change_state(ConstructorStringParserState::Pathname, 0);
