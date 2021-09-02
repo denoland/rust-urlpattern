@@ -53,10 +53,8 @@ pub fn canonicalize_port(
   }
 }
 
-// Ref: https://wicg.github.io/urlpattern/#canonicalize-a-standard-pathname
-pub fn canonicalize_standard_pathname(
-  value: &str,
-) -> Result<String, ParseError> {
+// Ref: https://wicg.github.io/urlpattern/#canonicalize-a-pathname
+pub fn canonicalize_pathname(value: &str) -> Result<String, ParseError> {
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url.set_path(value);
   Ok(url::quirks::pathname(&url).to_string())
@@ -168,7 +166,7 @@ pub fn process_pathname_init(
   } else {
     match protocol_value {
       Some(protocol) if is_special_scheme(protocol) => {
-        canonicalize_standard_pathname(pathname_value)
+        canonicalize_pathname(pathname_value)
       }
       _ => canonicalize_cannot_be_a_base_url_pathname(pathname_value),
     }

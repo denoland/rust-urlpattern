@@ -34,9 +34,9 @@ impl Options {
     }
   }
 
-  // Ref: https://wicg.github.io/urlpattern/#standard-pathname-options
+  // Ref: https://wicg.github.io/urlpattern/#pathname-options
   #[inline]
-  pub fn standard_pathname() -> Self {
+  pub fn pathname() -> Self {
     Options {
       delimiter_code_point: String::from("/"),
       prefix_code_point: String::from("/"),

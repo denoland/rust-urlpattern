@@ -270,8 +270,8 @@ impl UrlPattern {
     let pathname = if protocol.protocol_component_matches_special_scheme() {
       Component::compile(
         &processed_init.pathname.unwrap(),
-        canonicalize_and_process::canonicalize_standard_pathname,
-        parser::Options::standard_pathname(),
+        canonicalize_and_process::canonicalize_pathname,
+        parser::Options::pathname(),
       )?
     } else {
       Component::compile(

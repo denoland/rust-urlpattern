@@ -30,7 +30,7 @@ struct ConstructorStringParser<'a> {
   token_index: usize,
   token_increment: usize,
   group_depth: usize,
-  should_treat_as_standard_url: bool,
+  protocol_matches_special_scheme: bool,
   state: ConstructorStringParserState,
 }
 
@@ -194,8 +194,10 @@ impl<'a> ConstructorStringParser<'a> {
     self.token_list[self.token_index].kind == TokenType::Close
   }
 
-  // Ref: https://wicg.github.io/urlpattern/#compute-should-treat-as-a-standard-url
-  fn compute_should_treat_as_standard_url(&mut self) -> Result<(), ParseError> {
+  // Ref: https://wicg.github.io/urlpattern/#compute-protocol-matches-a-special-scheme-flag
+  fn compute_protocol_matches_special_scheme(
+    &mut self,
+  ) -> Result<(), ParseError> {
     let protocol_string = self.make_component_string();
     let protocol_component = crate::component::Component::compile(
       &protocol_string,
@@ -203,7 +205,7 @@ impl<'a> ConstructorStringParser<'a> {
       Default::default(),
     )?;
     if protocol_component.protocol_component_matches_special_scheme() {
-      self.should_treat_as_standard_url = true;
+      self.protocol_matches_special_scheme = true;
     }
     Ok(())
   }
@@ -244,7 +246,7 @@ pub fn parse_constructor_string(
     token_index: 0,
     token_increment: 1,
     group_depth: 0,
-    should_treat_as_standard_url: false,
+    protocol_matches_special_scheme: false,
     state: ConstructorStringParserState::Init,
   };
 
@@ -302,8 +304,8 @@ pub fn parse_constructor_string(
       }
       ConstructorStringParserState::Protocol => {
         if parser.is_protocol_suffix() {
-          parser.compute_should_treat_as_standard_url()?;
-          if parser.should_treat_as_standard_url {
+          parser.compute_protocol_matches_special_scheme()?;
+          if parser.protocol_matches_special_scheme {
             parser.result.pathname = Some(String::from("/"));
           }
           let mut next_state = ConstructorStringParserState::Pathname;
@@ -311,7 +313,7 @@ pub fn parse_constructor_string(
           if parser.next_is_authority_slashes() {
             next_state = ConstructorStringParserState::Authority;
             skip = 3;
-          } else if parser.should_treat_as_standard_url {
+          } else if parser.protocol_matches_special_scheme {
             next_state = ConstructorStringParserState::Authority;
           }
           parser.change_state(next_state, skip);
