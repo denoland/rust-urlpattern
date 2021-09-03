@@ -633,23 +633,35 @@ mod tests {
     });
 
     let test_res = pattern.test(input.clone(), base_url.as_deref());
-    let match_res = pattern.matches(input, base_url.as_deref());
+    let exec_res = pattern.exec(input, base_url.as_deref());
     if let Some(ExpectedMatch::String(s)) = &case.expected_match {
       if s == "error" {
         assert!(test_res.is_err());
-        assert!(match_res.is_err());
+        assert!(exec_res.is_err());
         return;
       }
     };
 
+    let expected_match = case.expected_match.map(|x| match x {
+      ExpectedMatch::String(_) => unreachable!(),
+      ExpectedMatch::URLPatternResult(x) => x,
+    });
+
     let test = test_res.unwrap();
-    let matched = match_res.unwrap();
+    let actual_match = exec_res.unwrap();
 
     assert_eq!(
       test,
-      case.expected_match.is_some(),
+      expected_match.is_some(),
       "pattern.test result is not correct"
     );
+
+    if expected_match.is_none() {
+      assert!(actual_match.is_none(), "expected match to be None");
+      return;
+    }
+
+    let actual_match = actual_match.expect("expected match to be Some");
 
     // TODO(lucacasonato): actually implement logic here!
   }
