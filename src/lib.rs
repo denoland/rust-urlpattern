@@ -116,7 +116,7 @@ impl UrlPatternInit {
     if let Some(port) = &self.port {
       result.port = Some(canonicalize_and_process::process_port_init(
         port,
-        result.protocol.as_ref().map(|s| &**s),
+        result.protocol.as_deref(),
         &kind,
       )?);
     }
@@ -140,7 +140,7 @@ impl UrlPatternInit {
 
       result.pathname = Some(canonicalize_and_process::process_pathname_init(
         &result.pathname.unwrap(),
-        result.protocol.as_ref().map(|s| &**s),
+        result.protocol.as_deref(),
         &kind,
       )?);
     }
@@ -165,7 +165,7 @@ fn is_absolute_pathname(
   if input.is_empty() {
     return false;
   }
-  if input.chars().next().unwrap() == '/' {
+  if input.starts_with('/') {
     return true;
   }
   if kind == &canonicalize_and_process::ProcessType::Url {
@@ -176,15 +176,7 @@ fn is_absolute_pathname(
     return false;
   }
 
-  let mut chars = input.chars();
-  let x = (chars.next().unwrap(), chars.next().unwrap());
-  match x {
-    ('\\', '/') => return true,
-    ('{', '/') => return true,
-    _ => {}
-  }
-
-  true
+  input.starts_with("\\/") || input.starts_with("{/")
 }
 
 // TODO: maybe specify baseURL directly in String variant? (baseURL in UrlPatternInit context will error per spec)
@@ -252,8 +244,8 @@ impl UrlPattern {
 
     //  If processedInit["protocol"] is a special scheme and processedInit["port"] is its corresponding default port
     if let Some(protocol) = &processed_init.protocol {
-      if is_special_scheme(&protocol) {
-        let default_port = special_scheme_default_port(&protocol);
+      if is_special_scheme(protocol) {
+        let default_port = special_scheme_default_port(protocol);
         if default_port == processed_init.port.as_deref() {
           processed_init.port = Some(String::new())
         }
@@ -532,6 +524,7 @@ mod tests {
 
   #[derive(Deserialize)]
   #[serde(untagged)]
+  #[allow(clippy::large_enum_variant)]
   pub enum ExpectedMatch {
     String(String),
     URLPatternResult(URLPatternResult),
