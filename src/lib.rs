@@ -212,6 +212,7 @@ pub struct UrlPattern {
 }
 
 impl UrlPattern {
+  // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-urlpattern
   /// Parse a [URLPatternInput] and optionally a base url into a [UrlPattern].
   pub fn parse(
     input: URLPatternInput,
@@ -258,6 +259,23 @@ impl UrlPattern {
       canonicalize_and_process::canonicalize_protocol,
       Default::default(),
     )?;
+
+    let hostname = if hostname_pattern_is_ipv6_address(
+      &processed_init.hostname.clone().unwrap(),
+    ) {
+      Component::compile(
+        processed_init.hostname.as_deref(),
+        canonicalize_and_process::canonicalize_ipv6_hostname,
+        parser::Options::hostname(),
+      )?
+    } else {
+      Component::compile(
+        processed_init.hostname.as_deref(),
+        canonicalize_and_process::canonicalize_hostname,
+        parser::Options::hostname(),
+      )?
+    };
+
     let pathname = if protocol.protocol_component_matches_special_scheme() {
       Component::compile(
         processed_init.pathname.as_deref(),
@@ -284,11 +302,7 @@ impl UrlPattern {
         canonicalize_and_process::canonicalize_password,
         Default::default(),
       )?,
-      hostname: Component::compile(
-        processed_init.hostname.as_deref(),
-        canonicalize_and_process::canonicalize_hostname,
-        parser::Options::hostname(),
-      )?,
+      hostname,
       port: Component::compile(
         processed_init.port.as_deref(),
         |port| {
@@ -482,6 +496,16 @@ impl UrlPattern {
       }))
     }
   }
+}
+
+// Ref: https://wicg.github.io/urlpattern/#hostname-pattern-is-an-ipv6-address
+fn hostname_pattern_is_ipv6_address(input: &str) -> bool {
+  // TODO: code point length
+  if input.len() < 2 {
+    return false;
+  }
+
+  input.starts_with('[') || input.starts_with("{[") || input.starts_with("\\[")
 }
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult

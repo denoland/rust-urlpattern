@@ -48,6 +48,18 @@ pub fn canonicalize_hostname(value: &str) -> Result<String, ParseError> {
   Ok(url::quirks::hostname(&url).to_string())
 }
 
+// Ref: https://wicg.github.io/urlpattern/#canonicalize-an-ipv6-hostname
+pub fn canonicalize_ipv6_hostname(value: &str) -> Result<String, ParseError> {
+  let valid_ipv6 = value
+    .chars()
+    .all(|c| c.is_ascii_hexdigit() || matches!(c, '[' | ']' | ':'));
+  if !valid_ipv6 {
+    Err(ParseError::SomeRandomOtherError)
+  } else {
+    Ok(value.to_ascii_lowercase())
+  }
+}
+
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-port
 pub fn canonicalize_port(
   value: &str,
