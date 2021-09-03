@@ -39,6 +39,7 @@ pub struct UrlPatternInit {
   pub pathname: Option<String>,
   pub search: Option<String>,
   pub hash: Option<String>,
+  #[serde(rename = "baseURL")]
   pub base_url: Option<String>,
 }
 
@@ -566,42 +567,64 @@ mod tests {
     };
     let pattern = res.unwrap();
 
-    // TODO(lucacasonato): replicate for each field (macro!)
+    let mut base_url = base_url.clone();
+    if let URLPatternInput::URLPatternInit(UrlPatternInit {
+      base_url: Some(url),
+      ..
+    }) = &input
     {
-      let mut expected = expected_obj.protocol;
-      if expected == None {
-        let mut base_url = base_url.clone();
-        if let URLPatternInput::URLPatternInit(UrlPatternInit {
-          base_url: Some(url),
-          ..
-        }) = &input
-        {
-          base_url = Some(url.clone())
-        }
-
-        if case
-          .exactly_empty_components
-          .contains(&"protocol".to_owned())
-        {
-          expected = Some(String::new())
-        } else if let URLPatternInput::URLPatternInit(UrlPatternInit {
-          protocol: Some(protocol),
-          ..
-        }) = &input
-        {
-          expected = Some(protocol.to_owned())
-        } else if let Some(base_url) = base_url {
-          let base_url = Url::parse(&base_url).unwrap();
-          expected = Some(base_url.scheme().to_owned())
-        } else {
-          expected = Some("*".to_owned())
-        }
-      }
-
-      let expected = expected.unwrap();
-
-      assert_eq!(pattern.protocol.pattern_string, expected);
+      base_url = Some(url.clone())
     }
+
+    macro_rules! assert_field {
+      ($field:ident) => {
+        let mut expected = expected_obj.$field;
+        if expected == None {
+          if case
+            .exactly_empty_components
+            .contains(&stringify!($field).to_owned())
+          {
+            expected = Some(String::new())
+          } else if let URLPatternInput::URLPatternInit(UrlPatternInit {
+            $field: Some($field),
+            ..
+          }) = &input
+          {
+            expected = Some($field.to_owned())
+          } else if let Some(base_url) = &base_url {
+            let base_url = Url::parse(base_url).unwrap();
+            let field = url::quirks::$field(&base_url);
+            let field: String = match stringify!($field) {
+              "protocol" => field[..1].to_owned(),
+              "search" | "hash" => field[1..].to_owned(),
+              _ => field.to_owned(),
+            };
+            expected = Some(field)
+          } else {
+            expected = Some("*".to_owned())
+          }
+        }
+
+        let expected = expected.unwrap();
+        let pattern = pattern.$field.pattern_string;
+
+        assert_eq!(
+          pattern,
+          expected,
+          "pattern for {} does not match",
+          stringify!($field)
+        );
+      };
+    }
+
+    assert_field!(protocol);
+    assert_field!(username);
+    assert_field!(password);
+    assert_field!(hostname);
+    assert_field!(port);
+    assert_field!(pathname);
+    assert_field!(search);
+    assert_field!(hash);
 
     // TODO(lucacasonato): actually implement logic here!
   }
