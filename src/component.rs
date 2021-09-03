@@ -23,15 +23,18 @@ pub struct Component {
 impl Component {
   // Ref: https://wicg.github.io/urlpattern/#compile-a-component
   pub fn compile<F>(
-    input: &str,
+    input: Option<&str>,
     encoding_callback: F,
     options: Options,
   ) -> Result<Self, ParseError>
   where
     F: Fn(&str) -> Result<String, ParseError>,
   {
-    let part_list =
-      crate::parser::parse_pattern_string(input, &options, encoding_callback)?;
+    let part_list = crate::parser::parse_pattern_string(
+      input.unwrap_or("*"),
+      &options,
+      encoding_callback,
+    )?;
     let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
     let regexp =

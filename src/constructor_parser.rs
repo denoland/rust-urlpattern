@@ -201,7 +201,7 @@ impl<'a> ConstructorStringParser<'a> {
   ) -> Result<(), ParseError> {
     let protocol_string = self.make_component_string();
     let protocol_component = crate::component::Component::compile(
-      &protocol_string,
+      Some(&protocol_string),
       crate::canonicalize_and_process::canonicalize_protocol,
       Default::default(),
     )?;

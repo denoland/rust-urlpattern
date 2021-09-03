@@ -252,22 +252,20 @@ impl UrlPattern {
       }
     }
 
-    let protocol_str = processed_init.protocol.clone().unwrap();
-
     let protocol = Component::compile(
-      &protocol_str,
+      processed_init.protocol.as_deref(),
       canonicalize_and_process::canonicalize_protocol,
       Default::default(),
     )?;
     let pathname = if protocol.protocol_component_matches_special_scheme() {
       Component::compile(
-        &processed_init.pathname.unwrap(),
+        processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_pathname,
         parser::Options::pathname(),
       )?
     } else {
       Component::compile(
-        &processed_init.pathname.unwrap(),
+        processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_cannot_be_a_base_url_pathname,
         Default::default(),
       )?
@@ -276,35 +274,38 @@ impl UrlPattern {
     Ok(UrlPattern {
       protocol,
       username: Component::compile(
-        &processed_init.username.unwrap(),
+        processed_init.username.as_deref(),
         canonicalize_and_process::canonicalize_username,
         Default::default(),
       )?,
       password: Component::compile(
-        &processed_init.password.unwrap(),
+        processed_init.password.as_deref(),
         canonicalize_and_process::canonicalize_password,
         Default::default(),
       )?,
       hostname: Component::compile(
-        &processed_init.hostname.unwrap(),
+        processed_init.hostname.as_deref(),
         canonicalize_and_process::canonicalize_hostname,
         parser::Options::hostname(),
       )?,
       port: Component::compile(
-        &processed_init.port.unwrap(),
+        processed_init.port.as_deref(),
         |port| {
-          canonicalize_and_process::canonicalize_port(port, Some(&protocol_str))
+          canonicalize_and_process::canonicalize_port(
+            port,
+            processed_init.protocol.as_deref(),
+          )
         },
         Default::default(),
       )?,
       pathname,
       search: Component::compile(
-        &processed_init.search.unwrap(),
+        processed_init.search.as_deref(),
         canonicalize_and_process::canonicalize_search,
         Default::default(),
       )?,
       hash: Component::compile(
-        &processed_init.hash.unwrap(),
+        processed_init.hash.as_deref(),
         canonicalize_and_process::canonicalize_hash,
         Default::default(),
       )?,
