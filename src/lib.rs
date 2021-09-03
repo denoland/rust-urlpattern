@@ -519,6 +519,9 @@ pub struct URLPatternComponentResult {
 #[cfg(test)]
 mod tests {
   use serde::Deserialize;
+  use url::Url;
+
+  use crate::UrlPatternInit;
 
   use super::URLPatternInput;
   use super::URLPatternResult;
@@ -538,6 +541,8 @@ mod tests {
     inputs: Vec<URLPatternInput>,
     expected_obj: Option<URLPatternInput>,
     expected_match: Option<ExpectedMatch>,
+    #[serde(default)]
+    exactly_empty_components: Vec<String>,
   }
 
   fn test_case(case: TestCase) {
@@ -549,7 +554,7 @@ mod tests {
       crate::URLPatternInput::URLPatternInit(_) => unreachable!(),
     });
 
-    let res = super::UrlPattern::parse(input.clone(), base_url);
+    let res = super::UrlPattern::parse(input.clone(), base_url.clone());
     let expected_obj = match case.expected_obj {
       Some(URLPatternInput::String(s)) if s == "error" => {
         assert!(res.is_err());
@@ -560,6 +565,43 @@ mod tests {
       None => super::UrlPatternInit::default(),
     };
     let pattern = res.unwrap();
+
+    // TODO(lucacasonato): replicate for each field (macro!)
+    {
+      let mut expected = expected_obj.protocol;
+      if expected == None {
+        let mut base_url = base_url.clone();
+        if let URLPatternInput::URLPatternInit(UrlPatternInit {
+          base_url: Some(url),
+          ..
+        }) = &input
+        {
+          base_url = Some(url.clone())
+        }
+
+        if case
+          .exactly_empty_components
+          .contains(&"protocol".to_owned())
+        {
+          expected = Some(String::new())
+        } else if let URLPatternInput::URLPatternInit(UrlPatternInit {
+          protocol: Some(protocol),
+          ..
+        }) = &input
+        {
+          expected = Some(protocol.to_owned())
+        } else if let Some(base_url) = base_url {
+          let base_url = Url::parse(&base_url).unwrap();
+          expected = Some(base_url.scheme().to_owned())
+        } else {
+          expected = Some("*".to_owned())
+        }
+      }
+
+      let expected = expected.unwrap();
+
+      assert_eq!(pattern.protocol.pattern_string, expected);
+    }
 
     // TODO(lucacasonato): actually implement logic here!
   }
