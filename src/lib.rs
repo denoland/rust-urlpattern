@@ -486,7 +486,7 @@ impl UrlPattern {
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult
 // TODO: doc
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct URLPatternResult {
   #[serde(skip_deserializing)]
   pub inputs: Vec<URLPatternInput>,
@@ -511,7 +511,7 @@ pub struct URLPatternResult {
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatterncomponentresult
 // TODO: doc
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct URLPatternComponentResult {
   pub input: String,
   pub groups: std::collections::HashMap<String, String>,
@@ -577,7 +577,7 @@ mod tests {
     }
 
     macro_rules! assert_field {
-      ($field:ident) => {
+      ($field:ident) => {{
         let mut expected = expected_obj.$field;
         if expected == None {
           if case
@@ -606,15 +606,15 @@ mod tests {
         }
 
         let expected = expected.unwrap();
-        let pattern = pattern.$field.pattern_string;
+        let pattern = &pattern.$field.pattern_string;
 
         assert_eq!(
           pattern,
-          expected,
+          &expected,
           "pattern for {} does not match",
           stringify!($field)
         );
-      };
+      }};
     }
 
     assert_field!(protocol);
@@ -625,6 +625,31 @@ mod tests {
     assert_field!(pathname);
     assert_field!(search);
     assert_field!(hash);
+
+    let input = case.inputs.get(0).unwrap().clone();
+    let base_url = case.inputs.get(1).map(|input| match input {
+      crate::URLPatternInput::String(str) => str.clone(),
+      crate::URLPatternInput::URLPatternInit(_) => unreachable!(),
+    });
+
+    let test_res = pattern.test(input.clone(), base_url.as_deref());
+    let match_res = pattern.matches(input, base_url.as_deref());
+    if let Some(ExpectedMatch::String(s)) = &case.expected_match {
+      if s == "error" {
+        assert!(test_res.is_err());
+        assert!(match_res.is_err());
+        return;
+      }
+    };
+
+    let test = test_res.unwrap();
+    let matched = match_res.unwrap();
+
+    assert_eq!(
+      test,
+      case.expected_match.is_some(),
+      "pattern.test result is not correct"
+    );
 
     // TODO(lucacasonato): actually implement logic here!
   }
