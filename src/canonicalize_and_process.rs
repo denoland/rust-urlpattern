@@ -10,6 +10,9 @@ use crate::ParseError;
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-protocol
 pub fn canonicalize_protocol(value: &str) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   url::Url::parse(&format!("{}://dummy.test", value))
     .map(|url| url.scheme().to_owned())
     .map_err(ParseError::Url)
@@ -17,13 +20,19 @@ pub fn canonicalize_protocol(value: &str) -> Result<String, ParseError> {
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-username
 pub fn canonicalize_username(value: &str) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url.set_username(value).unwrap();
+  url.set_username(value).unwrap(); // TODO: dont unwrap, instead ParseError
   Ok(url.username().to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-password
 pub fn canonicalize_password(value: &str) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url.set_password(Some(value)).unwrap(); // TODO: dont unwrap, instead ParseError
   Ok(url.password().unwrap().to_string())
@@ -31,6 +40,9 @@ pub fn canonicalize_password(value: &str) -> Result<String, ParseError> {
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-hostname
 pub fn canonicalize_hostname(value: &str) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url::quirks::set_hostname(&mut url, value).unwrap(); // TODO: dont unwrap, instead ParseError
   Ok(url::quirks::hostname(&url).to_string())
@@ -41,6 +53,9 @@ pub fn canonicalize_port(
   value: &str,
   protocol: Option<&str>,
 ) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   if let Some(protocol) = protocol {
     let mut url =
       url::Url::parse(&format!("{}://dummy.test", protocol)).unwrap(); // TODO: dont unwrap, instead ParseError
@@ -55,6 +70,9 @@ pub fn canonicalize_port(
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-pathname
 pub fn canonicalize_pathname(value: &str) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url.set_path(value);
   Ok(url::quirks::pathname(&url).to_string())
@@ -64,6 +82,9 @@ pub fn canonicalize_pathname(value: &str) -> Result<String, ParseError> {
 pub fn canonicalize_cannot_be_a_base_url_pathname(
   value: &str,
 ) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   let mut url = url::Url::parse("data:dummy,test").unwrap();
   url.set_path(value);
   Ok(url::quirks::pathname(&url).to_string())
@@ -71,6 +92,9 @@ pub fn canonicalize_cannot_be_a_base_url_pathname(
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-search
 pub fn canonicalize_search(value: &str) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url.set_query(Some(value));
   Ok(url.query().unwrap_or("").to_string())
@@ -78,6 +102,9 @@ pub fn canonicalize_search(value: &str) -> Result<String, ParseError> {
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-search
 pub fn canonicalize_hash(value: &str) -> Result<String, ParseError> {
+  if value.is_empty() {
+    return Ok(String::new());
+  }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url.set_fragment(Some(value));
   Ok(url.fragment().unwrap_or("").to_string())

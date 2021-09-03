@@ -388,7 +388,7 @@ pub fn escape_regexp_string(input: &str) -> String {
         | '['
         | ']'
         | '|'
-        | '/'
+        // | '/': deviation from spec, rust regexp crate does not handle '\/' as a valid escape sequence
         | '\\'
     ) {
       result.push('\\');
