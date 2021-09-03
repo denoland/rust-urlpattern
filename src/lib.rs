@@ -427,7 +427,7 @@ impl UrlPattern {
         password = url.password().unwrap_or_default().to_string();
         hostname = url.host_str().unwrap_or_default().to_string();
         port = url.port().unwrap_or_default().to_string(); // TODO: port_or_known_default?
-        todo!("pathname");
+        pathname = url::quirks::pathname(&url).to_string();
         search = url.query().unwrap_or_default().to_string();
         hash = url.fragment().unwrap_or_default().to_string();
       }
