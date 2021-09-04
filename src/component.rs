@@ -73,7 +73,8 @@ impl Component {
         .group_name_list
         .clone()
         .into_iter()
-        .zip(iter.map(|e| e.unwrap().as_str().to_string())) // TODO: no unwrap
+        .zip(iter.map(|e| e.map(|e| e.as_str().to_string())))
+        .filter_map(|(name, key)| key.map(|key| (name, key)))
         .collect(),
     }
   }

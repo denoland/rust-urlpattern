@@ -133,11 +133,7 @@ pub fn process_protocol_init(
   value: &str,
   kind: &ProcessType,
 ) -> Result<String, ParseError> {
-  let stripped_value = if value.starts_with(':') {
-    value.get(1..).unwrap()
-  } else {
-    value
-  };
+  let stripped_value = value.strip_suffix(':').unwrap_or(value);
   if kind == &ProcessType::Pattern {
     Ok(stripped_value.to_string())
   } else {

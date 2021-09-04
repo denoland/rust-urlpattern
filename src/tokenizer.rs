@@ -36,8 +36,8 @@ pub enum TokenizePolicy {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#tokenizer
-struct Tokenizer<'a> {
-  input: &'a str,
+struct Tokenizer {
+  input: Vec<char>,
   policy: TokenizePolicy,
   token_list: Vec<Token>,
   index: usize,
@@ -45,13 +45,11 @@ struct Tokenizer<'a> {
   code_point: Option<char>, // TODO: get rid of Option
 }
 
-impl<'a> Tokenizer<'a> {
+impl Tokenizer {
   // Ref: https://wicg.github.io/urlpattern/#get-the-next-code-point
   #[inline]
   fn get_next_codepoint(&mut self) {
-    // TODO: Set tokenizer’s code point to the Unicode code point in tokenizer’s input at the position indicated by tokenizer’s next index.
-    //  get Unicode code point
-    self.code_point = Some(self.input.chars().nth(self.next_index).unwrap());
+    self.code_point = Some(self.input[self.next_index]);
     self.next_index += 1;
   }
 
@@ -81,14 +79,12 @@ impl<'a> Tokenizer<'a> {
     value_pos: usize,
     value_len: usize,
   ) {
+    let range = value_pos..(value_pos + value_len);
+    let value = self.input[range].iter().collect::<String>();
     self.token_list.push(Token {
       kind,
       index: self.index,
-      value: self
-        .input
-        .get(value_pos..(value_pos + value_len))
-        .unwrap()
-        .to_owned(), // TODO: check if this is right
+      value, // TODO: check if this is right
     });
     self.index = next_pos;
   }
@@ -125,7 +121,7 @@ pub fn tokenize(
   policy: TokenizePolicy,
 ) -> Result<Vec<Token>, ParseError> {
   let mut tokenizer = Tokenizer {
-    input,
+    input: input.chars().collect::<Vec<char>>(),
     policy,
     token_list: vec![],
     index: 0,
@@ -133,8 +129,8 @@ pub fn tokenize(
     code_point: None,
   };
 
-  // TODO: https://infra.spec.whatwg.org/#string-code-point-length
   while tokenizer.index < tokenizer.input.len() {
+    tokenizer.next_index = tokenizer.index;
     tokenizer.get_next_codepoint();
 
     if tokenizer.code_point == Some('*') {
@@ -175,9 +171,10 @@ pub fn tokenize(
       // TODO: input code point length
       while name_pos < tokenizer.input.len() {
         tokenizer.seek_and_get_next_codepoint(name_pos);
+        let first_code_point = name_pos == name_start;
         let valid_codepoint = is_valid_name_codepoint(
           tokenizer.code_point.unwrap(),
-          name_pos == name_start,
+          first_code_point,
         );
         if !valid_codepoint {
           break;
@@ -274,6 +271,7 @@ pub fn tokenize(
         regexp_start,
         regexp_len,
       );
+      continue;
     }
 
     tokenizer.add_token_with_default_pos_and_len(TokenType::Char);

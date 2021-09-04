@@ -606,7 +606,7 @@ mod tests {
       Some(UrlPatternInput::UrlPatternInit(init)) => init,
       None => UrlPatternInit::default(),
     };
-    let pattern = res.unwrap();
+    let pattern = res.expect("failed to parse pattern");
 
     let mut base_url = base_url.clone();
     if let UrlPatternInput::UrlPatternInit(UrlPatternInit {
