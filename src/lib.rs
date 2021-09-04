@@ -19,14 +19,23 @@ use serde::Serialize;
 /// The structured input used to create a URL pattern.
 #[derive(Deserialize, Serialize, Clone, Default, Debug)]
 pub struct UrlPatternInit {
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub protocol: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub username: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub password: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub hostname: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub port: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub pathname: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub search: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub hash: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "baseURL")]
   pub base_url: Option<String>,
 }
@@ -574,18 +583,24 @@ mod tests {
   }
 
   fn test_case(case: TestCase) {
-    println!("case {:?}", case.pattern);
-
     let input = case.pattern.get(0).unwrap().clone();
     let base_url = case.pattern.get(1).map(|input| match input {
       UrlPatternInput::String(str) => str.clone(),
       UrlPatternInput::UrlPatternInit(_) => unreachable!(),
     });
 
+    println!("\n=====");
+    println!(
+      "Pattern: {}, {}",
+      serde_json::to_string(&input).unwrap(),
+      serde_json::to_string(&base_url).unwrap()
+    );
+
     let res = UrlPattern::parse(input.clone(), base_url.clone());
     let expected_obj = match case.expected_obj {
       Some(UrlPatternInput::String(s)) if s == "error" => {
         assert!(res.is_err());
+        println!("✅ Passed");
         return;
       }
       Some(UrlPatternInput::String(_)) => unreachable!(),
@@ -661,12 +676,19 @@ mod tests {
       crate::UrlPatternInput::UrlPatternInit(_) => unreachable!(),
     });
 
+    println!(
+      "Input: {}, {}",
+      serde_json::to_string(&input).unwrap(),
+      serde_json::to_string(&base_url).unwrap(),
+    );
+
     let test_res = pattern.test(input.clone(), base_url.as_deref());
     let exec_res = pattern.exec(input, base_url.as_deref());
     if let Some(ExpectedMatch::String(s)) = &case.expected_match {
       if s == "error" {
         assert!(test_res.is_err());
         assert!(exec_res.is_err());
+        println!("✅ Passed");
         return;
       }
     };
@@ -687,10 +709,13 @@ mod tests {
 
     if expected_match.is_none() {
       assert!(actual_match.is_none(), "expected match to be None");
+      println!("✅ Passed");
       return;
     }
 
     let _actual_match = actual_match.expect("expected match to be Some");
+
+    println!("✅ Passed");
 
     // TODO(lucacasonato): actually implement logic here!
   }
