@@ -70,8 +70,7 @@ impl UrlPatternInit {
         Some(parsed_base_url.password().unwrap_or_default().to_string());
       result.hostname =
         Some(parsed_base_url.host_str().unwrap_or_default().to_string());
-      result.port =
-        Some(parsed_base_url.port().unwrap_or_default().to_string()); // TODO: port_or_known_default?
+      result.port = Some(url::quirks::port(&parsed_base_url).to_string());
       result.pathname =
         Some(url::quirks::pathname(&parsed_base_url).to_string());
       result.search = Some(parsed_base_url.query().unwrap_or("").to_string());
@@ -442,7 +441,7 @@ impl UrlPattern {
         username = url.username().to_string();
         password = url.password().unwrap_or_default().to_string();
         hostname = url.host_str().unwrap_or_default().to_string();
-        port = url.port().unwrap_or_default().to_string(); // TODO: port_or_known_default?
+        port = url::quirks::port(&url).to_string();
         pathname = url::quirks::pathname(&url).to_string();
         search = url.query().unwrap_or_default().to_string();
         hash = url.fragment().unwrap_or_default().to_string();
@@ -623,8 +622,10 @@ mod tests {
             let base_url = Url::parse(base_url).unwrap();
             let field = url::quirks::$field(&base_url);
             let field: String = match stringify!($field) {
-              "protocol" => field[..1].to_owned(),
-              "search" | "hash" => field[1..].to_owned(),
+              "protocol" if !field.is_empty() => {
+                field[..field.len() - 1].to_owned()
+              }
+              "search" | "hash" if !field.is_empty() => field[1..].to_owned(),
               _ => field.to_owned(),
             };
             expected = Some(field)
