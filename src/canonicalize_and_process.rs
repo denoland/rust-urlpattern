@@ -122,7 +122,7 @@ pub fn canonicalize_hash(value: &str) -> Result<String, ParseError> {
   Ok(url.fragment().unwrap_or("").to_string())
 }
 
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ProcessType {
   Pattern,
   Url,
@@ -204,7 +204,7 @@ pub fn process_pathname_init(
     Ok(pathname_value.to_string())
   } else {
     match protocol_value {
-      Some(protocol) if is_special_scheme(protocol) => {
+      Some(protocol) if protocol.is_empty() || is_special_scheme(protocol) => {
         canonicalize_pathname(pathname_value)
       }
       _ => canonicalize_cannot_be_a_base_url_pathname(pathname_value),
