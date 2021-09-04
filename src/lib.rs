@@ -296,12 +296,7 @@ impl UrlPattern {
       hostname,
       port: Component::compile(
         processed_init.port.as_deref(),
-        |port| {
-          canonicalize_and_process::canonicalize_port(
-            port,
-            processed_init.protocol.as_deref(),
-          )
-        },
+        |port| canonicalize_and_process::canonicalize_port(port, None),
         Default::default(),
       )?,
       pathname,

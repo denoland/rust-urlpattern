@@ -63,21 +63,22 @@ pub fn canonicalize_ipv6_hostname(value: &str) -> Result<String, ParseError> {
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-port
 pub fn canonicalize_port(
   value: &str,
-  protocol: Option<&str>,
+  mut protocol: Option<&str>,
 ) -> Result<String, ParseError> {
   if value.is_empty() {
     return Ok(String::new());
   }
-  if let Some(protocol) = protocol {
-    let mut url =
-      url::Url::parse(&format!("{}://dummy.test", protocol)).unwrap(); // TODO: dont unwrap, instead ParseError
-    url::quirks::set_port(&mut url, value).unwrap(); // TODO: dont unwrap, instead ParseError
-    Ok(url::quirks::port(&url).to_string())
-  } else {
-    // If no protocol is given, the url can not have a username/password/port, so
-    // we can always return the empty string
-    Ok("".to_string())
+  if let Some("") = protocol {
+    protocol = None;
   }
+  let port = value
+    .parse::<u16>()
+    .map_err(|_| ParseError::Url(url::ParseError::InvalidPort))?;
+  let mut url =
+    url::Url::parse(&format!("{}://dummy.test", protocol.unwrap_or("dummy")))
+      .unwrap(); // TODO: dont unwrap, instead ParseError
+  url.set_port(Some(port)).unwrap(); // TODO: dont unwrap, instead ParseError
+  Ok(url::quirks::port(&url).to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-pathname
