@@ -7,6 +7,7 @@ mod error;
 mod parser;
 mod tokenizer;
 
+use canonicalize_and_process::ProcessType;
 pub use error::ParseError;
 
 use crate::canonicalize_and_process::is_special_scheme;
@@ -121,16 +122,15 @@ impl UrlPatternInit {
       result.pathname = Some(pathname.clone());
 
       if let Some(base_url) = base_url {
-        if !base_url.cannot_be_a_base() && is_absolute_pathname(pathname, &kind)
+        if !base_url.cannot_be_a_base()
+          && !is_absolute_pathname(pathname, &kind)
         {
-          // TODO: Let slash index be the index of the last U+002F (/) code point found in baseURL’s API pathname string, interpreted as a sequence of code points, or null if there are no instances of the code point.
-          let slash_index = Some(0);
-
-          if let Some(_slash_index) = slash_index {
-            // TODO: Let new pathname be the code point substring from indices 0 to slash index inclusive within baseURL ’s API pathname string .
-            let new_pathname = "";
+          let baseurl_pathname = url::quirks::pathname(&base_url);
+          let slash_index = baseurl_pathname.rfind('/');
+          if let Some(slash_index) = slash_index {
+            let new_pathname = baseurl_pathname[..=slash_index].to_string();
             result.pathname =
-              Some(format!("{}{}", new_pathname, result.pathname.unwrap()))
+              Some(format!("{}{}", new_pathname, result.pathname.unwrap()));
           }
         }
       }
