@@ -13,7 +13,7 @@ use serde::Serialize;
 
 // Ref: https://wicg.github.io/urlpattern/#component
 #[derive(Deserialize, Serialize)]
-pub struct Component {
+pub(crate) struct Component {
   pub pattern_string: String,
   #[serde(with = "serde_regex")]
   pub regexp: regex::Regex,
@@ -22,7 +22,7 @@ pub struct Component {
 
 impl Component {
   // Ref: https://wicg.github.io/urlpattern/#compile-a-component
-  pub fn compile<F>(
+  pub(crate) fn compile<F>(
     input: Option<&str>,
     encoding_callback: F,
     options: Options,
@@ -48,7 +48,7 @@ impl Component {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#protocol-component-matches-a-special-scheme
-  pub fn protocol_component_matches_special_scheme(&self) -> bool {
+  pub(crate) fn protocol_component_matches_special_scheme(&self) -> bool {
     const SPECIAL_SCHEMES: [&str; 6] =
       ["ftp", "file", "http", "https", "ws", "wss"];
     for scheme in SPECIAL_SCHEMES {
@@ -60,14 +60,14 @@ impl Component {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#create-a-component-match-result
-  pub fn create_match_result(
+  pub(crate) fn create_match_result(
     &self,
     input: String,
     exec_result: regex::Captures,
-  ) -> crate::URLPatternComponentResult {
+  ) -> crate::UrlPatternComponentResult {
     let mut iter = exec_result.iter();
     iter.next(); // first match is entire string
-    crate::URLPatternComponentResult {
+    crate::UrlPatternComponentResult {
       input,
       groups: self
         .group_name_list

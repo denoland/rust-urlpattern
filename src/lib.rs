@@ -3,30 +3,18 @@
 mod canonicalize_and_process;
 mod component;
 mod constructor_parser;
+mod error;
 mod parser;
 mod tokenizer;
 
-use canonicalize_and_process::is_special_scheme;
-use canonicalize_and_process::special_scheme_default_port;
-#[doc(hidden)]
-pub use component::Component;
+pub use error::ParseError;
+
+use crate::canonicalize_and_process::is_special_scheme;
+use crate::canonicalize_and_process::special_scheme_default_port;
+use crate::component::Component;
 
 use serde::Deserialize;
 use serde::Serialize;
-
-use derive_more::Display;
-
-/// An error that occured during parsing.
-#[derive(Debug, Display)]
-pub enum ParseError {
-  Tokenize,
-  Url(url::ParseError),
-  RegEx(regex::Error),
-  DuplicateName,
-  SomeRandomOtherError, // TODO: remove
-}
-
-impl std::error::Error for ParseError {}
 
 /// The structured input used to create a URL pattern.
 #[derive(Deserialize, Serialize, Clone, Default, Debug)]
@@ -184,47 +172,39 @@ fn is_absolute_pathname(
 /// Input for URLPattern functions.
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(untagged)]
-pub enum URLPatternInput {
+pub enum UrlPatternInput {
   String(String),
-  URLPatternInit(UrlPatternInit),
+  UrlPatternInit(UrlPatternInit),
 }
 
 // Ref: https://wicg.github.io/urlpattern/#urlpattern
 /// A UrlPattern that can be matched against.
 #[derive(Deserialize, Serialize)]
 pub struct UrlPattern {
-  #[doc(hidden)]
-  pub protocol: Component,
-  #[doc(hidden)]
-  pub username: Component,
-  #[doc(hidden)]
-  pub password: Component,
-  #[doc(hidden)]
-  pub hostname: Component,
-  #[doc(hidden)]
-  pub port: Component,
-  #[doc(hidden)]
-  pub pathname: Component,
-  #[doc(hidden)]
-  pub search: Component,
-  #[doc(hidden)]
-  pub hash: Component,
+  protocol: Component,
+  username: Component,
+  password: Component,
+  hostname: Component,
+  port: Component,
+  pathname: Component,
+  search: Component,
+  hash: Component,
 }
 
 impl UrlPattern {
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-urlpattern
-  /// Parse a [URLPatternInput] and optionally a base url into a [UrlPattern].
+  /// Parse a [UrlPatternInput] and optionally a base url into a [UrlPattern].
   pub fn parse(
-    input: URLPatternInput,
+    input: UrlPatternInput,
     base_url: Option<String>,
   ) -> Result<UrlPattern, ParseError> {
     let init = match input {
-      URLPatternInput::String(input) => {
+      UrlPatternInput::String(input) => {
         let mut init = constructor_parser::parse_constructor_string(&input)?;
         init.base_url = base_url;
         init
       }
-      URLPatternInput::URLPatternInit(input) => {
+      UrlPatternInput::UrlPatternInit(input) => {
         if base_url.is_some() {
           return Err(ParseError::SomeRandomOtherError); // TODO: proper error
         }
@@ -327,57 +307,75 @@ impl UrlPattern {
     })
   }
 
+  /// The pattern used to match against the protocol of the URL.
   pub fn protocol(&self) -> &str {
     &self.protocol.pattern_string
   }
+
+  /// The pattern used to match against the username of the URL.
   pub fn username(&self) -> &str {
     &self.username.pattern_string
   }
+
+  /// The pattern used to match against the password of the URL.
   pub fn password(&self) -> &str {
     &self.password.pattern_string
   }
+
+  /// The pattern used to match against the hostname of the URL.
   pub fn hostname(&self) -> &str {
     &self.hostname.pattern_string
   }
+
+  /// The pattern used to match against the port of the URL.
   pub fn port(&self) -> &str {
     &self.port.pattern_string
   }
+
+  /// The pattern used to match against the pathname of the URL.
   pub fn pathname(&self) -> &str {
     &self.pathname.pattern_string
   }
+
+  /// The pattern used to match against the search string of the URL.
   pub fn search(&self) -> &str {
     &self.search.pattern_string
   }
+
+  /// The pattern used to match against the hash fragment of the URL.
   pub fn hash(&self) -> &str {
     &self.hash.pattern_string
   }
 
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-test
-  /// Test if a given input [URLPatternInput] (with optional base url), matches the pattern.
+  /// Test if a given [UrlPatternInput] (with optional base url), matches the
+  /// pattern.
   pub fn test(
     &self,
-    input: URLPatternInput,
+    input: UrlPatternInput,
     base_url: Option<&str>,
   ) -> Result<bool, ParseError> {
     self.matches(input, base_url).map(|res| res.is_some())
   }
 
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-exec
-  // TODO: doc
+  /// Execute the pattern against a [UrlPatternInput] (with optional base url),
+  /// returning a [UrlPatternResult] if the pattern matches. If the pattern
+  /// doesn't match, returns `None`.
   pub fn exec(
     &self,
-    input: URLPatternInput,
+    input: UrlPatternInput,
     base_url: Option<&str>,
-  ) -> Result<Option<URLPatternResult>, ParseError> {
+  ) -> Result<Option<UrlPatternResult>, ParseError> {
     self.matches(input, base_url)
   }
 
   // Ref: https://wicg.github.io/urlpattern/#match
   fn matches(
     &self,
-    input: URLPatternInput,
+    input: UrlPatternInput,
     base_url_string: Option<&str>,
-  ) -> Result<Option<URLPatternResult>, ParseError> {
+  ) -> Result<Option<UrlPatternResult>, ParseError> {
     let mut protocol = String::new();
     let mut username = String::new();
     let mut password = String::new();
@@ -388,7 +386,7 @@ impl UrlPattern {
     let mut hash = String::new();
     let mut inputs = vec![input.clone()];
     match input {
-      URLPatternInput::URLPatternInit(input) => {
+      UrlPatternInput::UrlPatternInit(input) => {
         if base_url_string.is_some() {
           return Err(ParseError::SomeRandomOtherError); // TODO: proper error
         }
@@ -415,10 +413,10 @@ impl UrlPattern {
           return Ok(None);
         }
       }
-      URLPatternInput::String(input) => {
+      UrlPatternInput::String(input) => {
         let base_url = if let Some(base_url_string) = base_url_string {
           if let Ok(url) = url::Url::parse(base_url_string) {
-            inputs.push(URLPatternInput::String(url.to_string())); // TODO: check
+            inputs.push(UrlPatternInput::String(url.to_string())); // TODO: check
             Some(url)
           } else {
             return Ok(None);
@@ -467,7 +465,7 @@ impl UrlPattern {
     {
       Ok(None)
     } else {
-      Ok(Some(URLPatternResult {
+      Ok(Some(UrlPatternResult {
         inputs,
         protocol: self
           .protocol
@@ -509,35 +507,37 @@ fn hostname_pattern_is_ipv6_address(input: &str) -> bool {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult
-// TODO: doc
+/// A result of a URL pattern match.
 #[derive(Debug, Deserialize, Serialize)]
-pub struct URLPatternResult {
+pub struct UrlPatternResult {
   #[serde(skip_deserializing)]
-  pub inputs: Vec<URLPatternInput>,
+  pub inputs: Vec<UrlPatternInput>,
 
   #[serde(default)]
-  pub protocol: URLPatternComponentResult,
+  pub protocol: UrlPatternComponentResult,
   #[serde(default)]
-  pub username: URLPatternComponentResult,
+  pub username: UrlPatternComponentResult,
   #[serde(default)]
-  pub password: URLPatternComponentResult,
+  pub password: UrlPatternComponentResult,
   #[serde(default)]
-  pub hostname: URLPatternComponentResult,
+  pub hostname: UrlPatternComponentResult,
   #[serde(default)]
-  pub port: URLPatternComponentResult,
+  pub port: UrlPatternComponentResult,
   #[serde(default)]
-  pub pathname: URLPatternComponentResult,
+  pub pathname: UrlPatternComponentResult,
   #[serde(default)]
-  pub search: URLPatternComponentResult,
+  pub search: UrlPatternComponentResult,
   #[serde(default)]
-  pub hash: URLPatternComponentResult,
+  pub hash: UrlPatternComponentResult,
 }
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatterncomponentresult
-// TODO: doc
+/// A result of a URL pattern match on a single component.
 #[derive(Debug, Deserialize, Serialize, Default)]
-pub struct URLPatternComponentResult {
+pub struct UrlPatternComponentResult {
+  /// The matched input for this component.
   pub input: String,
+  /// The values for all named groups in the pattern.
   pub groups: std::collections::HashMap<String, String>,
 }
 
@@ -546,25 +546,25 @@ mod tests {
   use serde::Deserialize;
   use url::Url;
 
-  use crate::UrlPatternInit;
-
-  use super::URLPatternInput;
-  use super::URLPatternResult;
+  use super::UrlPattern;
+  use super::UrlPatternInit;
+  use super::UrlPatternInput;
+  use super::UrlPatternResult;
 
   #[derive(Deserialize)]
   #[serde(untagged)]
   #[allow(clippy::large_enum_variant)]
   pub enum ExpectedMatch {
     String(String),
-    URLPatternResult(URLPatternResult),
+    URLPatternResult(UrlPatternResult),
   }
 
   #[derive(Deserialize)]
   struct TestCase {
-    pattern: Vec<URLPatternInput>,
+    pattern: Vec<UrlPatternInput>,
     #[serde(default)]
-    inputs: Vec<URLPatternInput>,
-    expected_obj: Option<URLPatternInput>,
+    inputs: Vec<UrlPatternInput>,
+    expected_obj: Option<UrlPatternInput>,
     expected_match: Option<ExpectedMatch>,
     #[serde(default)]
     exactly_empty_components: Vec<String>,
@@ -575,24 +575,24 @@ mod tests {
 
     let input = case.pattern.get(0).unwrap().clone();
     let base_url = case.pattern.get(1).map(|input| match input {
-      crate::URLPatternInput::String(str) => str.clone(),
-      crate::URLPatternInput::URLPatternInit(_) => unreachable!(),
+      UrlPatternInput::String(str) => str.clone(),
+      UrlPatternInput::UrlPatternInit(_) => unreachable!(),
     });
 
-    let res = super::UrlPattern::parse(input.clone(), base_url.clone());
+    let res = UrlPattern::parse(input.clone(), base_url.clone());
     let expected_obj = match case.expected_obj {
-      Some(URLPatternInput::String(s)) if s == "error" => {
+      Some(UrlPatternInput::String(s)) if s == "error" => {
         assert!(res.is_err());
         return;
       }
-      Some(URLPatternInput::String(_)) => unreachable!(),
-      Some(URLPatternInput::URLPatternInit(init)) => init,
-      None => super::UrlPatternInit::default(),
+      Some(UrlPatternInput::String(_)) => unreachable!(),
+      Some(UrlPatternInput::UrlPatternInit(init)) => init,
+      None => UrlPatternInit::default(),
     };
     let pattern = res.unwrap();
 
     let mut base_url = base_url.clone();
-    if let URLPatternInput::URLPatternInit(UrlPatternInit {
+    if let UrlPatternInput::UrlPatternInit(UrlPatternInit {
       base_url: Some(url),
       ..
     }) = &input
@@ -609,7 +609,7 @@ mod tests {
             .contains(&stringify!($field).to_owned())
           {
             expected = Some(String::new())
-          } else if let URLPatternInput::URLPatternInit(UrlPatternInit {
+          } else if let UrlPatternInput::UrlPatternInit(UrlPatternInit {
             $field: Some($field),
             ..
           }) = &input
@@ -652,8 +652,8 @@ mod tests {
 
     let input = case.inputs.get(0).unwrap().clone();
     let base_url = case.inputs.get(1).map(|input| match input {
-      crate::URLPatternInput::String(str) => str.clone(),
-      crate::URLPatternInput::URLPatternInit(_) => unreachable!(),
+      crate::UrlPatternInput::String(str) => str.clone(),
+      crate::UrlPatternInput::UrlPatternInit(_) => unreachable!(),
     });
 
     let test_res = pattern.test(input.clone(), base_url.as_deref());

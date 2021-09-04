@@ -1,8 +1,8 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+use crate::error::ParseError;
 use crate::tokenizer::Token;
 use crate::tokenizer::TokenType;
-use crate::ParseError;
 use crate::UrlPatternInit;
 
 // Ref: https://wicg.github.io/urlpattern/#constructor-string-parser-state
@@ -235,7 +235,7 @@ impl<'a> ConstructorStringParser<'a> {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#parse-a-constructor-string
-pub fn parse_constructor_string(
+pub(crate) fn parse_constructor_string(
   input: &str,
 ) -> Result<UrlPatternInit, ParseError> {
   let mut parser = ConstructorStringParser {
