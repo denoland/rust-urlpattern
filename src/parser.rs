@@ -46,7 +46,14 @@ impl Options {
   // Ref: https://wicg.github.io/urlpattern/#generate-a-segment-wildcard-regexp
   #[inline]
   pub fn generate_segment_wildcard_regexp(&self) -> String {
-    format!("[^{}]+?", escape_regexp_string(&self.delimiter_code_point))
+    // NOTE: this is a deliberate deviation from the spec. In rust-regex, you
+    // can not have a negative character class without specifying any
+    // characters.
+    if self.delimiter_code_point.is_empty() {
+      ".+?".to_owned()
+    } else {
+      format!("[^{}]+?", escape_regexp_string(&self.delimiter_code_point))
+    }
   }
 }
 
