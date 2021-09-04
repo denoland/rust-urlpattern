@@ -51,7 +51,7 @@ impl Options {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#part-type
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum PartType {
   FixedText,
   Regexp,
@@ -60,7 +60,7 @@ pub enum PartType {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#part-modifier
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum PartModifier {
   None,
   Optional,
@@ -81,6 +81,7 @@ impl std::fmt::Display for PartModifier {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#part
+#[derive(Debug)]
 pub struct Part {
   pub kind: PartType,
   pub value: String,

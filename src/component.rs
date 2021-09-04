@@ -165,9 +165,9 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       continue;
     }
     let needs_grouping = !part.suffix.is_empty()
-      || (part.prefix.is_empty() && part.prefix != options.prefix_code_point);
+      || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point);
     assert!(!part.name.is_empty());
-    let custom_name = !part.name.chars().next().unwrap().is_ascii();
+    let custom_name = !part.name.chars().next().unwrap().is_ascii_digit();
     if needs_grouping {
       result.push('{');
     }
