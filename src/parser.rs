@@ -299,11 +299,13 @@ pub fn parse_pattern_string<F>(
 where
   F: Fn(&str) -> Result<String, ParseError>,
 {
+  let token_list = crate::tokenizer::tokenize(
+    input,
+    crate::tokenizer::TokenizePolicy::Strict,
+  )?;
+
   let mut parser = PatternParser {
-    token_list: crate::tokenizer::tokenize(
-      input,
-      crate::tokenizer::TokenizePolicy::Strict,
-    )?,
+    token_list,
     encoding_callback,
     segment_wildcard_regexp: options.generate_segment_wildcard_regexp(),
     part_list: vec![],

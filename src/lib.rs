@@ -7,7 +7,6 @@ mod error;
 mod parser;
 mod tokenizer;
 
-use canonicalize_and_process::ProcessType;
 pub use error::ParseError;
 
 use crate::canonicalize_and_process::is_special_scheme;
