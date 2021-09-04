@@ -12,7 +12,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 // Ref: https://wicg.github.io/urlpattern/#component
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct Component {
   pub pattern_string: String,
   #[serde(with = "serde_regex")]

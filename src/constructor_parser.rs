@@ -64,7 +64,7 @@ impl<'a> ConstructorStringParser<'a> {
       return false;
     }
     let previous_index = self.token_index - 1;
-    #[allow(clippy::absurd_extreme_comparisons)]
+    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
     if previous_index < 0 {
       // TODO: can self.token_index ever be negative?
       return true;

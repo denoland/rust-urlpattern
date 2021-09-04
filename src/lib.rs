@@ -118,7 +118,7 @@ impl UrlPatternInit {
           // TODO: Let slash index be the index of the last U+002F (/) code point found in baseURL’s API pathname string, interpreted as a sequence of code points, or null if there are no instances of the code point.
           let slash_index = Some(0);
 
-          if let Some(slash_index) = slash_index {
+          if let Some(_slash_index) = slash_index {
             // TODO: Let new pathname be the code point substring from indices 0 to slash index inclusive within baseURL ’s API pathname string .
             let new_pathname = "";
             result.pathname =
@@ -170,7 +170,7 @@ fn is_absolute_pathname(
 
 // TODO: maybe specify baseURL directly in String variant? (baseURL in UrlPatternInit context will error per spec)
 /// Input for URLPattern functions.
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum UrlPatternInput {
   String(String),
@@ -179,7 +179,7 @@ pub enum UrlPatternInput {
 
 // Ref: https://wicg.github.io/urlpattern/#urlpattern
 /// A UrlPattern that can be matched against.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UrlPattern {
   protocol: Component,
   username: Component,
@@ -240,9 +240,13 @@ impl UrlPattern {
       Default::default(),
     )?;
 
-    let hostname = if hostname_pattern_is_ipv6_address(
-      &processed_init.hostname.clone().unwrap(),
-    ) {
+    let hostname_is_ipv6 = processed_init
+      .hostname
+      .as_deref()
+      .map(hostname_pattern_is_ipv6_address)
+      .unwrap_or(false);
+
+    let hostname = if hostname_is_ipv6 {
       Component::compile(
         processed_init.hostname.as_deref(),
         canonicalize_and_process::canonicalize_ipv6_hostname,
@@ -685,7 +689,7 @@ mod tests {
       return;
     }
 
-    let actual_match = actual_match.expect("expected match to be Some");
+    let _actual_match = actual_match.expect("expected match to be Some");
 
     // TODO(lucacasonato): actually implement logic here!
   }
