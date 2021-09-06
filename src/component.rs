@@ -61,7 +61,7 @@ impl Component {
   pub(crate) fn create_match_result(
     &self,
     input: String,
-    mut exec_result: regress::Matches,
+    exec_result: regress::Matches,
   ) -> crate::UrlPatternComponentResult {
     crate::UrlPatternComponentResult {
       groups: self
@@ -69,7 +69,7 @@ impl Component {
         .clone()
         .into_iter()
         .zip(exec_result.map(|res| {
-          let x = res
+          res
             .captures
             .get(0)
             .and_then(|opt_range| {
@@ -78,9 +78,7 @@ impl Component {
                 .and_then(|range| input.get(range.clone()))
             })
             .unwrap_or_default()
-            .to_string();
-          println!("{:?}", x);
-          x
+            .to_string()
         }))
         .collect(),
       input,
