@@ -13,17 +13,21 @@ use urlpattern::UrlPattern;
 use urlpattern::UrlPatternInput;
 use urlpattern::UrlPatternInit;
 
+use urlpattern::UrlPattern;
+use urlpattern::UrlPatternInit;
+use urlpattern::UrlPatternMatchInput;
+
 fn main() {
-    // Create the UrlPattern to match against.
+  // Create the UrlPattern to match against.
   let init = UrlPatternInit {
     pathname: Some("/users/:id".to_owned()),
     ..Default::default()
   };
-  let pattern = UrlPattern::parse(UrlPatternInput::UrlPatternInit(init), None).unwrap();
- 
+  let pattern = UrlPattern::parse(init).unwrap();
+
   // Match the pattern against a URL.
-  let url = "https://example.com/users/123".to_owned();
-  let result = pattern.exec(UrlPatternInput::String(url), None).unwrap().unwrap();
+  let url = "https://example.com/users/123".parse().unwrap();
+  let result = pattern.exec(UrlPatternMatchInput::Url(url)).unwrap().unwrap();
   assert_eq!(result.pathname.groups.get("id").unwrap(), "123");
 }
 ```
