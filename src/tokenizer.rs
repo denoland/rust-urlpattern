@@ -2,8 +2,8 @@
 
 use derive_more::Display;
 
-use crate::error::TokenizeError;
-use crate::ParseError;
+use crate::error::TokenizerError;
+use crate::Error;
 
 // Ref: https://wicg.github.io/urlpattern/#tokens
 // Ref: https://wicg.github.io/urlpattern/#tokenizing
@@ -97,10 +97,10 @@ impl Tokenizer {
     &mut self,
     next_pos: usize,
     value_pos: usize,
-    error: TokenizeError,
-  ) -> Result<(), ParseError> {
+    error: TokenizerError,
+  ) -> Result<(), Error> {
     if self.policy == TokenizePolicy::Strict {
-      Err(ParseError::Tokenize(error, value_pos))
+      Err(Error::Tokenizer(error, value_pos))
     } else {
       self.add_token_with_default_len(
         TokenType::InvalidChar,
@@ -123,7 +123,7 @@ impl Tokenizer {
 pub fn tokenize(
   input: &str,
   policy: TokenizePolicy,
-) -> Result<Vec<Token>, ParseError> {
+) -> Result<Vec<Token>, Error> {
   let mut tokenizer = Tokenizer {
     input: input.chars().collect::<Vec<char>>(),
     policy,
@@ -150,7 +150,7 @@ pub fn tokenize(
         tokenizer.process_tokenizing_error(
           tokenizer.next_index,
           tokenizer.index,
-          TokenizeError::IncompleteEscapeCode,
+          TokenizerError::IncompleteEscapeCode,
         )?;
         continue;
       }
@@ -190,7 +190,7 @@ pub fn tokenize(
         tokenizer.process_tokenizing_error(
           name_start,
           tokenizer.index,
-          TokenizeError::InvalidName,
+          TokenizerError::InvalidName,
         )?;
         continue;
       }
@@ -216,7 +216,7 @@ pub fn tokenize(
           tokenizer.process_tokenizing_error(
             regexp_start,
             tokenizer.index,
-            TokenizeError::InvalidRegex(
+            TokenizerError::InvalidRegex(
               "must not start with ?, and may only contain ascii",
             ),
           )?;
@@ -228,7 +228,7 @@ pub fn tokenize(
             tokenizer.process_tokenizing_error(
               regexp_start,
               tokenizer.index,
-              TokenizeError::IncompleteEscapeCode,
+              TokenizerError::IncompleteEscapeCode,
             )?;
             error = true;
             break;
@@ -238,7 +238,7 @@ pub fn tokenize(
             tokenizer.process_tokenizing_error(
               regexp_start,
               tokenizer.index,
-              TokenizeError::InvalidRegex("non ascii character was escaped"),
+              TokenizerError::InvalidRegex("non ascii character was escaped"),
             )?;
             error = true;
             break;
@@ -258,7 +258,7 @@ pub fn tokenize(
             tokenizer.process_tokenizing_error(
               regexp_start,
               tokenizer.index,
-              TokenizeError::InvalidRegex("nested groups not closed"),
+              TokenizerError::InvalidRegex("nested groups not closed"),
             )?;
             error = true;
             break;
@@ -269,7 +269,7 @@ pub fn tokenize(
             tokenizer.process_tokenizing_error(
               regexp_start,
               tokenizer.index,
-              TokenizeError::InvalidRegex("nested groups must start with ?"),
+              TokenizerError::InvalidRegex("nested groups must start with ?"),
             )?;
             error = true;
             break;
@@ -285,7 +285,7 @@ pub fn tokenize(
         tokenizer.process_tokenizing_error(
           regexp_start,
           tokenizer.index,
-          TokenizeError::InvalidRegex("missing closing )"),
+          TokenizerError::InvalidRegex("missing closing )"),
         )?;
         continue;
       }
@@ -294,7 +294,7 @@ pub fn tokenize(
         tokenizer.process_tokenizing_error(
           regexp_start,
           tokenizer.index,
-          TokenizeError::InvalidRegex("length must be > 0"),
+          TokenizerError::InvalidRegex("length must be > 0"),
         )?;
         continue;
       }

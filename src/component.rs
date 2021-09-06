@@ -6,7 +6,7 @@ use crate::parser::Part;
 use crate::parser::PartModifier;
 use crate::parser::PartType;
 use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
-use crate::ParseError;
+use crate::Error;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -26,9 +26,9 @@ impl Component {
     input: Option<&str>,
     encoding_callback: F,
     options: Options,
-  ) -> Result<Self, ParseError>
+  ) -> Result<Self, Error>
   where
-    F: Fn(&str) -> Result<String, ParseError>,
+    F: Fn(&str) -> Result<String, Error>,
   {
     let part_list = crate::parser::parse_pattern_string(
       input.unwrap_or("*"),
@@ -38,7 +38,7 @@ impl Component {
     let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
     let regexp =
-      regex::Regex::new(&regexp_string).map_err(ParseError::RegEx)?;
+      regex::Regex::new(&regexp_string).map_err(Error::RegEx)?;
     let pattern_string = generate_pattern_string(part_list, &options);
     Ok(Component {
       pattern_string,

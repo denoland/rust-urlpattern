@@ -3,7 +3,7 @@
 use crate::error::ParserError;
 use crate::tokenizer::Token;
 use crate::tokenizer::TokenType;
-use crate::ParseError;
+use crate::Error;
 
 // Ref: https://wicg.github.io/urlpattern/#full-wildcard-regexp-value
 pub const FULL_WILDCARD_REGEXP_VALUE: &str = ".*";
@@ -115,7 +115,7 @@ impl Part {
 // Ref: https://wicg.github.io/urlpattern/#pattern-parser
 struct PatternParser<F>
 where
-  F: Fn(&str) -> Result<String, ParseError>,
+  F: Fn(&str) -> Result<String, Error>,
 {
   token_list: Vec<Token>,
   encoding_callback: F,
@@ -128,7 +128,7 @@ where
 
 impl<F> PatternParser<F>
 where
-  F: Fn(&str) -> Result<String, ParseError>,
+  F: Fn(&str) -> Result<String, Error>,
 {
   // Ref: https://wicg.github.io/urlpattern/#try-to-consume-a-token
   fn try_consume_token(&mut self, kind: TokenType) -> Option<Token> {
@@ -166,9 +166,7 @@ where
 
   // Ref: https://wicg.github.io/urlpattern/#maybe-add-a-part-from-the-pending-fixed-value
   #[inline]
-  fn maybe_add_part_from_pending_fixed_value(
-    &mut self,
-  ) -> Result<(), ParseError> {
+  fn maybe_add_part_from_pending_fixed_value(&mut self) -> Result<(), Error> {
     if self.pending_fixed_value.is_empty() {
       return Ok(());
     }
@@ -191,7 +189,7 @@ where
     regexp_or_wildcard_token: Option<Token>,
     suffix: &str,
     modifier_token: Option<Token>,
-  ) -> Result<(), ParseError> {
+  ) -> Result<(), Error> {
     let mut modifier = PartModifier::None;
     if let Some(modifier_token) = modifier_token {
       modifier = match modifier_token.value.as_ref() {
@@ -251,7 +249,7 @@ where
       self.next_numeric_name += 1;
     }
     if self.is_duplicate_name(&name) {
-      return Err(ParseError::DuplicateName);
+      return Err(Error::Parser(ParserError::DuplicateName(name)));
     }
     let encoded_prefix = (self.encoding_callback)(prefix)?;
     let encoded_suffix = (self.encoding_callback)(suffix)?;
@@ -293,9 +291,9 @@ where
   fn consume_required_token(
     &mut self,
     kind: TokenType,
-  ) -> Result<Token, ParseError> {
+  ) -> Result<Token, Error> {
     self.try_consume_token(kind.clone()).ok_or_else(|| {
-      ParseError::Parser(ParserError::ExpectedToken(
+      Error::Parser(ParserError::ExpectedToken(
         kind,
         self.token_list[self.index].kind.clone(),
         self.token_list[self.index].value.clone(),
@@ -309,9 +307,9 @@ pub fn parse_pattern_string<F>(
   input: &str,
   options: &Options,
   encoding_callback: F,
-) -> Result<Vec<Part>, ParseError>
+) -> Result<Vec<Part>, Error>
 where
-  F: Fn(&str) -> Result<String, ParseError>,
+  F: Fn(&str) -> Result<String, Error>,
 {
   let token_list = crate::tokenizer::tokenize(
     input,

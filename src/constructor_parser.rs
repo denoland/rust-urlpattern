@@ -1,6 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-use crate::error::ParseError;
+use crate::error::Error;
 use crate::tokenizer::Token;
 use crate::tokenizer::TokenType;
 use crate::UrlPatternInit;
@@ -195,7 +195,7 @@ impl<'a> ConstructorStringParser<'a> {
   // Ref: https://wicg.github.io/urlpattern/#compute-protocol-matches-a-special-scheme-flag
   fn compute_protocol_matches_special_scheme(
     &mut self,
-  ) -> Result<(), ParseError> {
+  ) -> Result<(), Error> {
     let protocol_string = self.make_component_string();
     let protocol_component = crate::component::Component::compile(
       Some(&protocol_string),
@@ -234,7 +234,7 @@ impl<'a> ConstructorStringParser<'a> {
 // Ref: https://wicg.github.io/urlpattern/#parse-a-constructor-string
 pub(crate) fn parse_constructor_string(
   input: &str,
-) -> Result<UrlPatternInit, ParseError> {
+) -> Result<UrlPatternInit, Error> {
   let token_list = crate::tokenizer::tokenize(
     input,
     crate::tokenizer::TokenizePolicy::Lenient,

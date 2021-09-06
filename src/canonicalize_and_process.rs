@@ -4,22 +4,22 @@
 // precise wording of the spec, because rust-url does not expose all the
 // routines exactly as the spec wants. The end behaviour should be identical.
 
-use crate::ParseError;
+use crate::Error;
 
 // https://wicg.github.io/urlpattern/#canon-encoding-callbacks
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-protocol
-pub fn canonicalize_protocol(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_protocol(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
   url::Url::parse(&format!("{}://dummy.test", value))
     .map(|url| url.scheme().to_owned())
-    .map_err(ParseError::Url)
+    .map_err(Error::Url)
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-username
-pub fn canonicalize_username(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_username(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -30,7 +30,7 @@ pub fn canonicalize_username(value: &str) -> Result<String, ParseError> {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-password
-pub fn canonicalize_password(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_password(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -41,22 +41,22 @@ pub fn canonicalize_password(value: &str) -> Result<String, ParseError> {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-hostname
-pub fn canonicalize_hostname(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_hostname(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url.set_host(Some(value)).map_err(ParseError::Url)?;
+  url.set_host(Some(value)).map_err(Error::Url)?;
   Ok(url::quirks::hostname(&url).to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-an-ipv6-hostname
-pub fn canonicalize_ipv6_hostname(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_ipv6_hostname(value: &str) -> Result<String, Error> {
   let valid_ipv6 = value
     .chars()
     .all(|c| c.is_ascii_hexdigit() || matches!(c, '[' | ']' | ':'));
   if !valid_ipv6 {
-    Err(ParseError::Url(url::ParseError::InvalidIpv6Address))
+    Err(Error::Url(url::ParseError::InvalidIpv6Address))
   } else {
     Ok(value.to_ascii_lowercase())
   }
@@ -66,7 +66,7 @@ pub fn canonicalize_ipv6_hostname(value: &str) -> Result<String, ParseError> {
 pub fn canonicalize_port(
   value: &str,
   mut protocol: Option<&str>,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -75,7 +75,7 @@ pub fn canonicalize_port(
   }
   let port = value
     .parse::<u16>()
-    .map_err(|_| ParseError::Url(url::ParseError::InvalidPort))?;
+    .map_err(|_| Error::Url(url::ParseError::InvalidPort))?;
   // Note: this unwrap is safe, because the protocol was previously parsed to be
   // valid.
   let mut url =
@@ -86,7 +86,7 @@ pub fn canonicalize_port(
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-pathname
-pub fn canonicalize_pathname(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_pathname(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -98,7 +98,7 @@ pub fn canonicalize_pathname(value: &str) -> Result<String, ParseError> {
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-cannot-be-a-base-url-pathname
 pub fn canonicalize_cannot_be_a_base_url_pathname(
   value: &str,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -108,7 +108,7 @@ pub fn canonicalize_cannot_be_a_base_url_pathname(
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-search
-pub fn canonicalize_search(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_search(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -118,7 +118,7 @@ pub fn canonicalize_search(value: &str) -> Result<String, ParseError> {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-search
-pub fn canonicalize_hash(value: &str) -> Result<String, ParseError> {
+pub fn canonicalize_hash(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -137,7 +137,7 @@ pub enum ProcessType {
 pub fn process_protocol_init(
   value: &str,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   let stripped_value = value.strip_suffix(':').unwrap_or(value);
   if kind == &ProcessType::Pattern {
     Ok(stripped_value.to_string())
@@ -150,7 +150,7 @@ pub fn process_protocol_init(
 pub fn process_username_init(
   value: &str,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   if kind == &ProcessType::Pattern {
     Ok(value.to_string())
   } else {
@@ -162,7 +162,7 @@ pub fn process_username_init(
 pub fn process_password_init(
   value: &str,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   if kind == &ProcessType::Pattern {
     Ok(value.to_string())
   } else {
@@ -174,7 +174,7 @@ pub fn process_password_init(
 pub fn process_hostname_init(
   value: &str,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   if kind == &ProcessType::Pattern {
     Ok(value.to_string())
   } else {
@@ -187,7 +187,7 @@ pub fn process_port_init(
   port_value: &str,
   protocol_value: Option<&str>,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   if kind == &ProcessType::Pattern {
     Ok(port_value.to_string())
   } else {
@@ -200,7 +200,7 @@ pub fn process_pathname_init(
   pathname_value: &str,
   protocol_value: Option<&str>,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   if kind == &ProcessType::Pattern {
     Ok(pathname_value.to_string())
   } else {
@@ -217,7 +217,7 @@ pub fn process_pathname_init(
 pub fn process_search_init(
   value: &str,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   let stripped_value = if value.starts_with('?') {
     value.get(1..).unwrap()
   } else {
@@ -234,7 +234,7 @@ pub fn process_search_init(
 pub fn process_hash_init(
   value: &str,
   kind: &ProcessType,
-) -> Result<String, ParseError> {
+) -> Result<String, Error> {
   let stripped_value = if value.starts_with('#') {
     value.get(1..).unwrap()
   } else {

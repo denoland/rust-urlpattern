@@ -7,7 +7,7 @@ mod error;
 mod parser;
 mod tokenizer;
 
-pub use error::ParseError;
+pub use error::Error;
 
 use crate::canonicalize_and_process::is_special_scheme;
 use crate::canonicalize_and_process::special_scheme_default_port;
@@ -55,7 +55,7 @@ impl UrlPatternInit {
     pathname: Option<String>,
     search: Option<String>,
     hash: Option<String>,
-  ) -> Result<UrlPatternInit, ParseError> {
+  ) -> Result<UrlPatternInit, Error> {
     let mut result = UrlPatternInit {
       protocol,
       username,
@@ -70,7 +70,7 @@ impl UrlPatternInit {
 
     let base_url = if let Some(self_base_url) = &self.base_url {
       let parsed_base_url =
-        url::Url::parse(self_base_url).map_err(ParseError::Url)?;
+        url::Url::parse(self_base_url).map_err(Error::Url)?;
 
       // TODO: check if these are correct
       result.protocol = Some(parsed_base_url.scheme().to_string());
@@ -204,19 +204,19 @@ impl UrlPattern {
   pub fn parse(
     input: UrlPatternInput,
     base_url: Option<String>,
-  ) -> Result<UrlPattern, ParseError> {
+  ) -> Result<UrlPattern, Error> {
     let init = match input {
       UrlPatternInput::String(input) => {
         let mut init = constructor_parser::parse_constructor_string(&input)?;
         if base_url.is_none() && init.protocol.is_none() {
-          return Err(ParseError::BaseUrlRequired);
+          return Err(Error::BaseUrlRequired);
         }
         init.base_url = base_url;
         init
       }
       UrlPatternInput::UrlPatternInit(input) => {
         if base_url.is_some() {
-          return Err(ParseError::SomeRandomOtherError); // TODO: proper error
+          return Err(Error::NoBaseUrlWithInitObject);
         }
         input
       }
@@ -364,7 +364,7 @@ impl UrlPattern {
     &self,
     input: UrlPatternInput,
     base_url: Option<&str>,
-  ) -> Result<bool, ParseError> {
+  ) -> Result<bool, Error> {
     self.matches(input, base_url).map(|res| res.is_some())
   }
 
@@ -376,7 +376,7 @@ impl UrlPattern {
     &self,
     input: UrlPatternInput,
     base_url: Option<&str>,
-  ) -> Result<Option<UrlPatternResult>, ParseError> {
+  ) -> Result<Option<UrlPatternResult>, Error> {
     self.matches(input, base_url)
   }
 
@@ -385,7 +385,7 @@ impl UrlPattern {
     &self,
     input: UrlPatternInput,
     base_url_string: Option<&str>,
-  ) -> Result<Option<UrlPatternResult>, ParseError> {
+  ) -> Result<Option<UrlPatternResult>, Error> {
     let mut protocol = String::new();
     let mut username = String::new();
     let mut password = String::new();
@@ -398,7 +398,7 @@ impl UrlPattern {
     match input {
       UrlPatternInput::UrlPatternInit(input) => {
         if base_url_string.is_some() {
-          return Err(ParseError::SomeRandomOtherError); // TODO: proper error
+          return Err(Error::NoBaseUrlWithInitObject);
         }
         if let Ok(apply_result) = input.process(
           canonicalize_and_process::ProcessType::Url,
