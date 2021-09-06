@@ -37,8 +37,7 @@ impl Component {
     )?;
     let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
-    let regexp =
-      regex::Regex::new(&regexp_string).map_err(Error::RegEx)?;
+    let regexp = regex::Regex::new(&regexp_string).map_err(Error::RegEx)?;
     let pattern_string = generate_pattern_string(part_list, &options);
     Ok(Component {
       pattern_string,

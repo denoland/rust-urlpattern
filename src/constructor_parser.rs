@@ -193,9 +193,7 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#compute-protocol-matches-a-special-scheme-flag
-  fn compute_protocol_matches_special_scheme(
-    &mut self,
-  ) -> Result<(), Error> {
+  fn compute_protocol_matches_special_scheme(&mut self) -> Result<(), Error> {
     let protocol_string = self.make_component_string();
     let protocol_component = crate::component::Component::compile(
       Some(&protocol_string),
