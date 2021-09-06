@@ -17,7 +17,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 /// The structured input used to create a URL pattern.
-#[derive(Deserialize, Serialize, Clone, Default, Debug)]
+#[derive(Deserialize, Serialize, Clone, Default, Debug, Eq, PartialEq)]
 pub struct UrlPatternInit {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub protocol: Option<String>,
@@ -177,7 +177,7 @@ fn is_absolute_pathname(
 
 // TODO: maybe specify baseURL directly in String variant? (baseURL in UrlPatternInit context will error per spec)
 /// Input for URLPattern functions.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum UrlPatternInput {
   String(String),
@@ -514,32 +514,23 @@ fn hostname_pattern_is_ipv6_address(input: &str) -> bool {
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatternresult
 /// A result of a URL pattern match.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct UrlPatternResult {
-  #[serde(skip_deserializing)]
   pub inputs: Vec<UrlPatternInput>,
 
-  #[serde(default)]
   pub protocol: UrlPatternComponentResult,
-  #[serde(default)]
   pub username: UrlPatternComponentResult,
-  #[serde(default)]
   pub password: UrlPatternComponentResult,
-  #[serde(default)]
   pub hostname: UrlPatternComponentResult,
-  #[serde(default)]
   pub port: UrlPatternComponentResult,
-  #[serde(default)]
   pub pathname: UrlPatternComponentResult,
-  #[serde(default)]
   pub search: UrlPatternComponentResult,
-  #[serde(default)]
   pub hash: UrlPatternComponentResult,
 }
 
 // Ref: https://wicg.github.io/urlpattern/#dictdef-urlpatterncomponentresult
 /// A result of a URL pattern match on a single component.
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 pub struct UrlPatternComponentResult {
   /// The matched input for this component.
   pub input: String,
@@ -549,20 +540,24 @@ pub struct UrlPatternComponentResult {
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+
   use serde::Deserialize;
   use url::Url;
+
+  use crate::UrlPatternComponentResult;
+  use crate::UrlPatternResult;
 
   use super::UrlPattern;
   use super::UrlPatternInit;
   use super::UrlPatternInput;
-  use super::UrlPatternResult;
 
   #[derive(Deserialize)]
   #[serde(untagged)]
   #[allow(clippy::large_enum_variant)]
-  pub enum ExpectedMatch {
+  enum ExpectedMatch {
     String(String),
-    URLPatternResult(UrlPatternResult),
+    MatchResult(MatchResult),
   }
 
   #[derive(Deserialize)]
@@ -574,6 +569,20 @@ mod tests {
     expected_match: Option<ExpectedMatch>,
     #[serde(default)]
     exactly_empty_components: Vec<String>,
+  }
+
+  #[derive(Debug, Deserialize)]
+  struct MatchResult {
+    inputs: Option<Vec<UrlPatternInput>>,
+
+    protocol: Option<UrlPatternComponentResult>,
+    username: Option<UrlPatternComponentResult>,
+    password: Option<UrlPatternComponentResult>,
+    hostname: Option<UrlPatternComponentResult>,
+    port: Option<UrlPatternComponentResult>,
+    pathname: Option<UrlPatternComponentResult>,
+    search: Option<UrlPatternComponentResult>,
+    hash: Option<UrlPatternComponentResult>,
   }
 
   fn test_case(case: TestCase) {
@@ -689,7 +698,7 @@ mod tests {
 
     let expected_match = case.expected_match.map(|x| match x {
       ExpectedMatch::String(_) => unreachable!(),
-      ExpectedMatch::URLPatternResult(x) => x,
+      ExpectedMatch::MatchResult(x) => x,
     });
 
     let test = test_res.unwrap();
@@ -701,17 +710,56 @@ mod tests {
       "pattern.test result is not correct"
     );
 
-    if expected_match.is_none() {
-      assert!(actual_match.is_none(), "expected match to be None");
-      println!("✅ Passed");
-      return;
+    let expected_match = match expected_match {
+      Some(x) => x,
+      None => {
+        assert!(actual_match.is_none(), "expected match to be None");
+        println!("✅ Passed");
+        return;
+      }
+    };
+
+    let actual_match = actual_match.expect("expected match to be Some");
+
+    let exactly_empty_components = case.exactly_empty_components;
+
+    macro_rules! convert_result {
+      ($component:ident) => {
+        expected_match.$component.unwrap_or_else(|| {
+          let mut groups = HashMap::new();
+          if !exactly_empty_components
+            .contains(&stringify!($component).to_owned())
+          {
+            groups.insert("0".to_owned(), "".to_owned());
+          }
+          UrlPatternComponentResult {
+            input: "".to_owned(),
+            groups,
+          }
+        })
+      };
     }
 
-    let _actual_match = actual_match.expect("expected match to be Some");
+    let expected_result = UrlPatternResult {
+      inputs: expected_match
+        .inputs
+        .unwrap_or_else(|| actual_match.inputs.clone()),
+      protocol: convert_result!(protocol),
+      username: convert_result!(username),
+      password: convert_result!(password),
+      hostname: convert_result!(hostname),
+      port: convert_result!(port),
+      pathname: convert_result!(pathname),
+      search: convert_result!(search),
+      hash: convert_result!(hash),
+    };
+
+    assert_eq!(
+      actual_match, expected_result,
+      "pattern.exec result is not correct"
+    );
 
     println!("✅ Passed");
-
-    // TODO(lucacasonato): actually implement logic here!
   }
 
   #[test]

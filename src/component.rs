@@ -74,7 +74,7 @@ impl Component {
         .clone()
         .into_iter()
         .zip(iter.map(|e| e.map(|e| e.as_str().to_string())))
-        .filter_map(|(name, key)| key.map(|key| (name, key)))
+        .map(|(name, key)| (name, key.unwrap_or_default()))
         .collect(),
     }
   }
