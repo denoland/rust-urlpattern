@@ -63,13 +63,10 @@ impl<'a> ConstructorStringParser<'a> {
     if self.token_list[self.token_index].value != "?" {
       return false;
     }
-    let previous_index = self.token_index - 1;
-    #[allow(clippy::absurd_extreme_comparisons, unused_comparisons)]
-    if previous_index < 0 {
-      // TODO: can self.token_index ever be negative?
+    if self.token_index == 0 {
       return true;
     }
-    let previous_token = self.get_safe_token(previous_index);
+    let previous_token = self.get_safe_token(self.token_index - 1);
     !matches!(
       previous_token.kind,
       TokenType::Name
