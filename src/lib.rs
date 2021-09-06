@@ -464,44 +464,53 @@ impl UrlPattern {
     let search_exec_result = self.search.regexp.captures(&search);
     let hash_exec_result = self.hash.regexp.captures(&hash);
 
-    if protocol_exec_result.is_none()
-      || username_exec_result.is_none()
-      || password_exec_result.is_none()
-      || hostname_exec_result.is_none()
-      || port_exec_result.is_none()
-      || pathname_exec_result.is_none()
-      || search_exec_result.is_none()
-      || hash_exec_result.is_none()
-    {
-      Ok(None)
-    } else {
-      Ok(Some(UrlPatternResult {
+    match (
+      protocol_exec_result,
+      username_exec_result,
+      password_exec_result,
+      hostname_exec_result,
+      port_exec_result,
+      pathname_exec_result,
+      search_exec_result,
+      hash_exec_result,
+    ) {
+      (
+        Some(protocol_exec_result),
+        Some(username_exec_result),
+        Some(password_exec_result),
+        Some(hostname_exec_result),
+        Some(port_exec_result),
+        Some(pathname_exec_result),
+        Some(search_exec_result),
+        Some(hash_exec_result),
+      ) => Ok(Some(UrlPatternResult {
         inputs,
         protocol: self
           .protocol
-          .create_match_result(protocol.clone(), protocol_exec_result.unwrap()),
+          .create_match_result(protocol.clone(), protocol_exec_result),
         username: self
           .username
-          .create_match_result(username.clone(), username_exec_result.unwrap()),
+          .create_match_result(username.clone(), username_exec_result),
         password: self
           .password
-          .create_match_result(password.clone(), password_exec_result.unwrap()),
+          .create_match_result(password.clone(), password_exec_result),
         hostname: self
           .hostname
-          .create_match_result(hostname.clone(), hostname_exec_result.unwrap()),
+          .create_match_result(hostname.clone(), hostname_exec_result),
         port: self
           .port
-          .create_match_result(port.clone(), port_exec_result.unwrap()),
+          .create_match_result(port.clone(), port_exec_result),
         pathname: self
           .pathname
-          .create_match_result(pathname.clone(), pathname_exec_result.unwrap()),
+          .create_match_result(pathname.clone(), pathname_exec_result),
         search: self
           .search
-          .create_match_result(search.clone(), search_exec_result.unwrap()),
+          .create_match_result(search.clone(), search_exec_result),
         hash: self
           .hash
-          .create_match_result(hash.clone(), hash_exec_result.unwrap()),
-      }))
+          .create_match_result(hash.clone(), hash_exec_result),
+      })),
+      _ => Ok(None),
     }
   }
 }
