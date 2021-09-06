@@ -41,7 +41,7 @@ impl UrlPatternInit {
     pattern: &str,
     base_url: Option<Url>,
   ) -> Result<UrlPatternInit, Error> {
-    let mut init = constructor_parser::parse_constructor_string(&pattern)?;
+    let mut init = constructor_parser::parse_constructor_string(pattern)?;
     if base_url.is_none() && init.protocol.is_none() {
       return Err(Error::BaseUrlRequired);
     }
@@ -84,9 +84,9 @@ impl UrlPatternInit {
         Some(parsed_base_url.password().unwrap_or_default().to_string());
       result.hostname =
         Some(parsed_base_url.host_str().unwrap_or_default().to_string());
-      result.port = Some(url::quirks::port(&parsed_base_url).to_string());
+      result.port = Some(url::quirks::port(parsed_base_url).to_string());
       result.pathname =
-        Some(url::quirks::pathname(&parsed_base_url).to_string());
+        Some(url::quirks::pathname(parsed_base_url).to_string());
       result.search = Some(parsed_base_url.query().unwrap_or("").to_string());
       result.hash = Some(parsed_base_url.fragment().unwrap_or("").to_string());
 
@@ -129,7 +129,7 @@ impl UrlPatternInit {
         if !base_url.cannot_be_a_base()
           && !is_absolute_pathname(pathname, &kind)
         {
-          let baseurl_pathname = url::quirks::pathname(&base_url);
+          let baseurl_pathname = url::quirks::pathname(base_url);
           let slash_index = baseurl_pathname.rfind('/');
           if let Some(slash_index) = slash_index {
             let new_pathname = baseurl_pathname[..=slash_index].to_string();
@@ -643,24 +643,22 @@ mod tests {
             .clone()
             .map(|url| url.parse().map_err(Error::Url))
             .transpose()
-            .and_then(|base_url| {
-              Ok(UrlPatternInit {
-                protocol: parts.protocol,
-                username: parts.username,
-                password: parts.password,
-                hostname: parts.hostname,
-                port: parts.port,
-                pathname: parts.pathname,
-                search: parts.search,
-                hash: parts.hash,
-                base_url,
-              })
+            .map(|base_url| UrlPatternInit {
+              protocol: parts.protocol,
+              username: parts.username,
+              password: parts.password,
+              hostname: parts.hostname,
+              port: parts.port,
+              pathname: parts.pathname,
+              search: parts.search,
+              hash: parts.hash,
+              base_url,
             })
         }
       }
     };
 
-    let res = init.and_then(|init| UrlPattern::parse(init));
+    let res = init.and_then(UrlPattern::parse);
     let expected_obj = match case.expected_obj {
       Some(PartsOrString::String(s)) if s == "error" => {
         assert!(res.is_err());
@@ -809,12 +807,12 @@ mod tests {
       return;
     }
     let test_res = if let Some(input) = input.clone() {
-      pattern.test(input.clone())
+      pattern.test(input)
     } else {
       Ok(false)
     };
-    let exec_res = if let Some(input) = input.clone() {
-      pattern.exec(input.clone())
+    let exec_res = if let Some(input) = input {
+      pattern.exec(input)
     } else {
       Ok(None)
     };
