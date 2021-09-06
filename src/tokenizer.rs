@@ -1,6 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-use crate::ParseError;
+use crate::{error::TokenizeError, ParseError};
 
 // Ref: https://wicg.github.io/urlpattern/#tokens
 // Ref: https://wicg.github.io/urlpattern/#tokenizing
@@ -94,9 +94,10 @@ impl Tokenizer {
     &mut self,
     next_pos: usize,
     value_pos: usize,
+    error: TokenizeError,
   ) -> Result<(), ParseError> {
     if self.policy == TokenizePolicy::Strict {
-      Err(ParseError::Tokenize) // TODO: more descriptive error
+      Err(ParseError::Tokenize(error, value_pos))
     } else {
       self.add_token_with_default_len(
         TokenType::InvalidChar,
@@ -142,10 +143,12 @@ pub fn tokenize(
       continue;
     }
     if tokenizer.code_point == Some('\\') {
-      // TODO: input code point length
       if tokenizer.index == (tokenizer.input.len() - 1) {
-        tokenizer
-          .process_tokenizing_error(tokenizer.next_index, tokenizer.index)?;
+        tokenizer.process_tokenizing_error(
+          tokenizer.next_index,
+          tokenizer.index,
+          TokenizeError::IncompleteEscapeCode,
+        )?;
         continue;
       }
       let escaped_index = tokenizer.next_index;
@@ -168,7 +171,6 @@ pub fn tokenize(
     if tokenizer.code_point == Some(':') {
       let mut name_pos = tokenizer.next_index;
       let name_start = name_pos;
-      // TODO: input code point length
       while name_pos < tokenizer.input.len() {
         tokenizer.seek_and_get_next_codepoint(name_pos);
         let first_code_point = name_pos == name_start;
@@ -182,7 +184,11 @@ pub fn tokenize(
         name_pos = tokenizer.next_index;
       }
       if name_pos <= name_start {
-        tokenizer.process_tokenizing_error(name_start, tokenizer.index)?;
+        tokenizer.process_tokenizing_error(
+          name_start,
+          tokenizer.index,
+          TokenizeError::InvalidName,
+        )?;
         continue;
       }
       tokenizer.add_token_with_default_len(
@@ -204,22 +210,33 @@ pub fn tokenize(
         if !tokenizer.code_point.unwrap().is_ascii()
           || (regexp_pos == regexp_start && tokenizer.code_point == Some('?'))
         {
-          tokenizer.process_tokenizing_error(regexp_start, tokenizer.index)?;
+          tokenizer.process_tokenizing_error(
+            regexp_start,
+            tokenizer.index,
+            TokenizeError::InvalidRegex(
+              "must not start with ?, and may only contain ascii",
+            ),
+          )?;
           error = true;
           break;
         }
         if tokenizer.code_point == Some('\\') {
-          // TODO: input code point length
           if regexp_pos == (tokenizer.input.len() - 1) {
-            tokenizer
-              .process_tokenizing_error(regexp_start, tokenizer.index)?;
+            tokenizer.process_tokenizing_error(
+              regexp_start,
+              tokenizer.index,
+              TokenizeError::IncompleteEscapeCode,
+            )?;
             error = true;
             break;
           }
           tokenizer.get_next_codepoint();
           if !tokenizer.code_point.unwrap().is_ascii() {
-            tokenizer
-              .process_tokenizing_error(regexp_start, tokenizer.index)?;
+            tokenizer.process_tokenizing_error(
+              regexp_start,
+              tokenizer.index,
+              TokenizeError::InvalidRegex("non ascii character was escaped"),
+            )?;
             error = true;
             break;
           }
@@ -234,18 +251,23 @@ pub fn tokenize(
           }
         } else if tokenizer.code_point == Some('(') {
           depth += 1;
-          // TODO: input code point length
           if regexp_pos == (tokenizer.input.len() - 1) {
-            tokenizer
-              .process_tokenizing_error(regexp_start, tokenizer.index)?;
+            tokenizer.process_tokenizing_error(
+              regexp_start,
+              tokenizer.index,
+              TokenizeError::InvalidRegex("nested groups not closed"),
+            )?;
             error = true;
             break;
           }
           let temp_pos = tokenizer.next_index;
           tokenizer.get_next_codepoint();
           if tokenizer.code_point != Some('?') {
-            tokenizer
-              .process_tokenizing_error(regexp_start, tokenizer.index)?;
+            tokenizer.process_tokenizing_error(
+              regexp_start,
+              tokenizer.index,
+              TokenizeError::InvalidRegex("nested groups must start with ?"),
+            )?;
             error = true;
             break;
           }
@@ -257,12 +279,20 @@ pub fn tokenize(
         continue;
       }
       if depth != 0 {
-        tokenizer.process_tokenizing_error(regexp_start, tokenizer.index)?;
+        tokenizer.process_tokenizing_error(
+          regexp_start,
+          tokenizer.index,
+          TokenizeError::InvalidRegex("missing closing )"),
+        )?;
         continue;
       }
       let regexp_len = regexp_pos - regexp_start - 1;
       if regexp_len == 0 {
-        tokenizer.process_tokenizing_error(regexp_start, tokenizer.index)?;
+        tokenizer.process_tokenizing_error(
+          regexp_start,
+          tokenizer.index,
+          TokenizeError::InvalidRegex("length must be > 0"),
+        )?;
         continue;
       }
       tokenizer.add_token(

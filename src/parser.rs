@@ -171,9 +171,7 @@ where
     if self.pending_fixed_value.is_empty() {
       return Ok(());
     }
-    println!("pending_fixed_value {}", self.pending_fixed_value);
     let encoded_value = (self.encoding_callback)(&self.pending_fixed_value)?;
-    println!("encoded_value {}", encoded_value);
     self.pending_fixed_value = String::new();
     self.part_list.push(Part::new(
       PartType::FixedText,
@@ -295,7 +293,9 @@ where
     &mut self,
     kind: TokenType,
   ) -> Result<Token, ParseError> {
-    self.try_consume_token(kind).ok_or(ParseError::Tokenize) // TODO: better error
+    self
+      .try_consume_token(kind)
+      .ok_or(ParseError::SomeRandomOtherError) // TODO: better error
   }
 }
 

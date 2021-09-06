@@ -208,6 +208,9 @@ impl UrlPattern {
     let init = match input {
       UrlPatternInput::String(input) => {
         let mut init = constructor_parser::parse_constructor_string(&input)?;
+        if base_url.is_none() && init.protocol.is_none() {
+          return Err(ParseError::BaseUrlRequired);
+        }
         init.base_url = base_url;
         init
       }
@@ -267,11 +270,6 @@ impl UrlPattern {
       )?
     };
 
-    println!("protocol {:?}", protocol);
-    println!(
-      "matches special scheme {}",
-      protocol.protocol_component_matches_special_scheme()
-    );
     let pathname = if protocol.protocol_component_matches_special_scheme() {
       Component::compile(
         processed_init.pathname.as_deref(),
@@ -605,6 +603,11 @@ mod tests {
       serde_json::to_string(&base_url).unwrap()
     );
 
+    if let Some(reason) = case.skip {
+      println!("🟠 Skipping: {}", reason);
+      return;
+    }
+
     let res = UrlPattern::parse(input.clone(), base_url.clone());
     let expected_obj = match case.expected_obj {
       Some(UrlPatternInput::String(s)) if s == "error" => {
@@ -773,9 +776,7 @@ mod tests {
     let testdata = include_str!("./testdata/urlpatterntestdata.json");
     let cases: Vec<TestCase> = serde_json::from_str(testdata).unwrap();
     for case in cases {
-      if case.skip.is_none() {
-        test_case(case);
-      }
+      test_case(case);
     }
   }
 }

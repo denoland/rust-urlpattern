@@ -6,7 +6,7 @@ use crate::tokenizer::TokenType;
 use crate::UrlPatternInit;
 
 // Ref: https://wicg.github.io/urlpattern/#constructor-string-parser-state
-#[derive(Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 enum ConstructorStringParserState {
   Init,
   Protocol,
@@ -130,7 +130,7 @@ impl<'a> ConstructorStringParser<'a> {
 
   // Ref: https://wicg.github.io/urlpattern/#change-state
   fn change_state(&mut self, state: ConstructorStringParserState, skip: usize) {
-    match state {
+    match self.state {
       ConstructorStringParserState::Protocol => {
         self.result.protocol = Some(self.make_component_string())
       }
@@ -168,10 +168,10 @@ impl<'a> ConstructorStringParser<'a> {
   fn make_component_string(&self) -> String {
     assert!(self.token_index < self.token_list.len());
     let token = &self.token_list[self.token_index];
-    let component_start_token = self.get_safe_token(self.component_start);
+    let component_start_index = self.get_safe_token(self.component_start).index;
     self
       .input
-      .get(component_start_token.index..=token.index) // TODO: check & codepoint
+      .get(component_start_index..token.index) // TODO: check & codepoint
       .unwrap()
       .to_string()
   }
@@ -238,12 +238,14 @@ impl<'a> ConstructorStringParser<'a> {
 pub(crate) fn parse_constructor_string(
   input: &str,
 ) -> Result<UrlPatternInit, ParseError> {
+  let token_list = crate::tokenizer::tokenize(
+    input,
+    crate::tokenizer::TokenizePolicy::Lenient,
+  )?;
+
   let mut parser = ConstructorStringParser {
     input,
-    token_list: crate::tokenizer::tokenize(
-      input,
-      crate::tokenizer::TokenizePolicy::Lenient,
-    )?,
+    token_list,
     result: UrlPatternInit {
       protocol: None,
       username: None,
