@@ -12,11 +12,10 @@ use serde::Deserialize;
 use serde::Serialize;
 
 // Ref: https://wicg.github.io/urlpattern/#component
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub(crate) struct Component {
   pub pattern_string: String,
-  #[serde(with = "serde_regex")]
-  pub regexp: regex::Regex,
+  pub regexp: regress::Regex,
   pub group_name_list: Vec<String>,
 }
 
@@ -37,7 +36,7 @@ impl Component {
     )?;
     let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
-    let regexp = regex::Regex::new(&regexp_string).map_err(Error::RegEx)?;
+    let regexp = regress::Regex::new(&regexp_string).map_err(Error::RegEx)?;
     let pattern_string = generate_pattern_string(part_list, &options);
     Ok(Component {
       pattern_string,
@@ -51,7 +50,7 @@ impl Component {
     const SPECIAL_SCHEMES: [&str; 6] =
       ["ftp", "file", "http", "https", "ws", "wss"];
     for scheme in SPECIAL_SCHEMES {
-      if self.regexp.captures(scheme).is_some() {
+      if self.regexp.find(scheme).is_some() {
         return true;
       }
     }
@@ -62,19 +61,29 @@ impl Component {
   pub(crate) fn create_match_result(
     &self,
     input: String,
-    exec_result: regex::Captures,
+    mut exec_result: regress::Matches,
   ) -> crate::UrlPatternComponentResult {
-    let mut iter = exec_result.iter();
-    iter.next(); // first match is entire string
     crate::UrlPatternComponentResult {
-      input,
       groups: self
         .group_name_list
         .clone()
         .into_iter()
-        .zip(iter.map(|e| e.map(|e| e.as_str().to_string())))
-        .map(|(name, key)| (name, key.unwrap_or_default()))
+        .zip(exec_result.map(|res| {
+          let x = res
+            .captures
+            .get(0)
+            .and_then(|opt_range| {
+              opt_range
+                .as_ref()
+                .and_then(|range| input.get(range.clone()))
+            })
+            .unwrap_or_default()
+            .to_string();
+          println!("{:?}", x);
+          x
+        }))
         .collect(),
+      input,
     }
   }
 }

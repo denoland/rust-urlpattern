@@ -20,7 +20,7 @@ pub enum Error {
   Parser(ParserError),
 
   Url(url::ParseError),
-  RegEx(regex::Error),
+  RegEx(regress::Error),
 }
 
 impl std::error::Error for Error {}

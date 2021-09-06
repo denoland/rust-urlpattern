@@ -230,7 +230,6 @@
     }
   },
   {
-    "skip": "only works in ecmascript variety of regex",
     "pattern": [{ "pathname": "/foo/([^\\/]+?)" }],
     "inputs": [{ "pathname": "/foo/bar" }],
     "expected_match": {

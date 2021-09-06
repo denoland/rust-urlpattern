@@ -213,7 +213,7 @@ pub enum UrlPatternInput {
 /// assert_eq!(result.pathname.groups.get("id").unwrap(), "123");
 ///# }
 /// ```
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct UrlPattern {
   protocol: Component,
   username: Component,
@@ -290,7 +290,6 @@ impl UrlPattern {
         parser::Options::hostname(),
       )?
     } else {
-      println!("hostname");
       Component::compile(
         processed_init.hostname.as_deref(),
         canonicalize_and_process::canonicalize_hostname,
@@ -482,61 +481,53 @@ impl UrlPattern {
       }
     }
 
-    let protocol_exec_result = self.protocol.regexp.captures(&protocol);
-    let username_exec_result = self.username.regexp.captures(&username);
-    let password_exec_result = self.password.regexp.captures(&password);
-    let hostname_exec_result = self.hostname.regexp.captures(&hostname);
-    let port_exec_result = self.port.regexp.captures(&port);
-    let pathname_exec_result = self.pathname.regexp.captures(&pathname);
-    let search_exec_result = self.search.regexp.captures(&search);
-    let hash_exec_result = self.hash.regexp.captures(&hash);
-
     match (
-      protocol_exec_result,
-      username_exec_result,
-      password_exec_result,
-      hostname_exec_result,
-      port_exec_result,
-      pathname_exec_result,
-      search_exec_result,
-      hash_exec_result,
+      self.protocol.regexp.find(&protocol).is_some(),
+      self.username.regexp.find(&username).is_some(),
+      self.password.regexp.find(&password).is_some(),
+      self.hostname.regexp.find(&hostname).is_some(),
+      self.port.regexp.find(&port).is_some(),
+      self.pathname.regexp.find(&pathname).is_some(),
+      self.search.regexp.find(&search).is_some(),
+      self.hash.regexp.find(&hash).is_some(),
     ) {
-      (
-        Some(protocol_exec_result),
-        Some(username_exec_result),
-        Some(password_exec_result),
-        Some(hostname_exec_result),
-        Some(port_exec_result),
-        Some(pathname_exec_result),
-        Some(search_exec_result),
-        Some(hash_exec_result),
-      ) => Ok(Some(UrlPatternResult {
-        inputs,
-        protocol: self
-          .protocol
-          .create_match_result(protocol.clone(), protocol_exec_result),
-        username: self
-          .username
-          .create_match_result(username.clone(), username_exec_result),
-        password: self
-          .password
-          .create_match_result(password.clone(), password_exec_result),
-        hostname: self
-          .hostname
-          .create_match_result(hostname.clone(), hostname_exec_result),
-        port: self
-          .port
-          .create_match_result(port.clone(), port_exec_result),
-        pathname: self
-          .pathname
-          .create_match_result(pathname.clone(), pathname_exec_result),
-        search: self
-          .search
-          .create_match_result(search.clone(), search_exec_result),
-        hash: self
-          .hash
-          .create_match_result(hash.clone(), hash_exec_result),
-      })),
+      (true, true, true, true, true, true, true, true) => {
+        Ok(Some(UrlPatternResult {
+          inputs,
+          protocol: self.protocol.create_match_result(
+            protocol.clone(),
+            self.protocol.regexp.find_iter(&protocol),
+          ),
+          username: self.username.create_match_result(
+            username.clone(),
+            self.username.regexp.find_iter(&username),
+          ),
+          password: self.password.create_match_result(
+            password.clone(),
+            self.password.regexp.find_iter(&password),
+          ),
+          hostname: self.hostname.create_match_result(
+            hostname.clone(),
+            self.hostname.regexp.find_iter(&hostname),
+          ),
+          port: self.port.create_match_result(
+            port.clone(),
+            self.port.regexp.find_iter(&port),
+          ),
+          pathname: self.pathname.create_match_result(
+            pathname.clone(),
+            self.pathname.regexp.find_iter(&pathname),
+          ),
+          search: self.search.create_match_result(
+            search.clone(),
+            self.search.regexp.find_iter(&search),
+          ),
+          hash: self.hash.create_match_result(
+            hash.clone(),
+            self.hash.regexp.find_iter(&hash),
+          ),
+        }))
+      }
       _ => Ok(None),
     }
   }
