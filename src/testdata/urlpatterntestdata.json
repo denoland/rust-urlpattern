@@ -230,6 +230,7 @@
     }
   },
   {
+    "skip": "only works in ecmascript variety of regex",
     "pattern": [{ "pathname": "/foo/([^\\/]+?)" }],
     "inputs": [{ "pathname": "/foo/bar" }],
     "expected_match": {
@@ -2250,6 +2251,7 @@
     "expected_obj": "error"
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": ":name*" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_match": {
@@ -2257,6 +2259,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": ":name+" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_match": {
@@ -2264,6 +2267,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": ":name" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_match": {
@@ -2271,6 +2275,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "protocol": ":name*" }],
     "inputs": [{ "protocol": "foobar" }],
     "expected_match": {
@@ -2278,6 +2283,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "protocol": ":name+" }],
     "inputs": [{ "protocol": "foobar" }],
     "expected_match": {
@@ -2285,6 +2291,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "protocol": ":name" }],
     "inputs": [{ "protocol": "foobar" }],
     "expected_match": {

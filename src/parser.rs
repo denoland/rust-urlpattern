@@ -327,7 +327,6 @@ where
   };
 
   while parser.index < parser.token_list.len() {
-    println!("token {:?}", parser.token_list[parser.index]);
     let char_token = parser.try_consume_token(TokenType::Char);
     let mut name_token = parser.try_consume_token(TokenType::Name);
     let mut regexp_or_wildcard_token =
@@ -381,8 +380,6 @@ where
     parser.maybe_add_part_from_pending_fixed_value()?;
     parser.consume_required_token(TokenType::End)?;
   }
-
-  println!("part_list {:?}", parser.part_list);
 
   Ok(parser.part_list)
 }
