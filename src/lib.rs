@@ -562,6 +562,7 @@ mod tests {
 
   #[derive(Deserialize)]
   struct TestCase {
+    skip: Option<String>,
     pattern: Vec<UrlPatternInput>,
     #[serde(default)]
     inputs: Vec<UrlPatternInput>,
@@ -767,7 +768,9 @@ mod tests {
     let testdata = include_str!("./testdata/urlpatterntestdata.json");
     let cases: Vec<TestCase> = serde_json::from_str(testdata).unwrap();
     for case in cases {
-      test_case(case);
+      if case.skip.is_none() {
+        test_case(case);
+      }
     }
   }
 }

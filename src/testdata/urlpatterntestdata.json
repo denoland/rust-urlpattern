@@ -1170,6 +1170,7 @@
     "expected_match": null
   },
   {
+    "skip": "spec is not correct",
     "pattern": [{ "pathname": "/foo/bar" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": null
@@ -1208,6 +1209,7 @@
     }
   },
   {
+    "skip": "spec is not correct",
     "pattern": [{ "pathname": "foo/bar" }],
     "inputs": [ "https://example.com/foo/bar" ],
     "expected_match": null
