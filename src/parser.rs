@@ -1,5 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+use crate::error::ParserError;
 use crate::tokenizer::Token;
 use crate::tokenizer::TokenType;
 use crate::ParseError;
@@ -293,9 +294,13 @@ where
     &mut self,
     kind: TokenType,
   ) -> Result<Token, ParseError> {
-    self
-      .try_consume_token(kind)
-      .ok_or(ParseError::SomeRandomOtherError) // TODO: better error
+    self.try_consume_token(kind.clone()).ok_or_else(|| {
+      ParseError::Parser(ParserError::ExpectedToken(
+        kind,
+        self.token_list[self.index].kind.clone(),
+        self.token_list[self.index].value.clone(),
+      ))
+    })
   }
 }
 
@@ -372,6 +377,7 @@ where
         &suffix,
         modifier_token,
       )?;
+      continue;
     }
     parser.maybe_add_part_from_pending_fixed_value()?;
     parser.consume_required_token(TokenType::End)?;

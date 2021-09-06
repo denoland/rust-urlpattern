@@ -1,12 +1,15 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-use crate::{error::TokenizeError, ParseError};
+use derive_more::Display;
+
+use crate::error::TokenizeError;
+use crate::ParseError;
 
 // Ref: https://wicg.github.io/urlpattern/#tokens
 // Ref: https://wicg.github.io/urlpattern/#tokenizing
 
 // Ref: https://wicg.github.io/urlpattern/#token-type
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Display, Clone, Eq, PartialEq)]
 pub enum TokenType {
   Open,
   Close,

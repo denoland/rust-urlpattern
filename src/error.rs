@@ -1,5 +1,7 @@
 use derive_more::Display;
 
+use crate::tokenizer::TokenType;
+
 /// An error that occured during parsing.
 #[derive(Display)]
 pub enum ParseError {
@@ -8,6 +10,9 @@ pub enum ParseError {
 
   #[display(fmt = "a relative input without a base URL is not valid")]
   BaseUrlRequired,
+
+  #[display(fmt = "parser error: {}", _0)]
+  Parser(ParserError),
 
   Url(url::ParseError),
   RegEx(regex::Error),
@@ -31,4 +36,10 @@ pub enum TokenizeError {
   InvalidName,
   #[display(fmt = "invalid regex: {}", _0)]
   InvalidRegex(&'static str),
+}
+
+#[derive(Debug, Display)]
+pub enum ParserError {
+  #[display(fmt = "expected token {}, found '{}' of type {}", _0, _2, _1)]
+  ExpectedToken(TokenType, TokenType, String),
 }
