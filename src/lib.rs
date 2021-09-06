@@ -267,6 +267,11 @@ impl UrlPattern {
       )?
     };
 
+    println!("protocol {:?}", protocol);
+    println!(
+      "matches special scheme {}",
+      protocol.protocol_component_matches_special_scheme()
+    );
     let pathname = if protocol.protocol_component_matches_special_scheme() {
       Component::compile(
         processed_init.pathname.as_deref(),

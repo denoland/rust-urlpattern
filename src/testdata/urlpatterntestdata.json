@@ -1170,7 +1170,7 @@
     "expected_match": null
   },
   {
-    "skip": "spec is not correct",
+    "skip": "spec is not correct during path canonicalization",
     "pattern": [{ "pathname": "/foo/bar" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": null
@@ -1209,7 +1209,7 @@
     }
   },
   {
-    "skip": "spec is not correct",
+    "skip": "spec is not correct during path canonicalization",
     "pattern": [{ "pathname": "foo/bar" }],
     "inputs": [ "https://example.com/foo/bar" ],
     "expected_match": null
@@ -1229,6 +1229,7 @@
     }
   },
   {
+    "skip": "spec is not correct during path canonicalization",
     "pattern": [{ "pathname": ":name.html", "baseURL": "https://example.com" }],
     "inputs": [ "https://example.com/foo.html"] ,
     "exactly_empty_components": [ "username", "password", "port", "search",
@@ -1346,6 +1347,7 @@
     }
   },
   {
+    "skip": "spec is not correct during path canonicalization",
     "pattern": [{ "pathname": "var x = 1;" }],
     "inputs": [{ "protocol": "javascript", "pathname": "var x = 1;" }],
     "expected_obj": {
@@ -1370,6 +1372,7 @@
     }
   },
   {
+    "skip": "spec is not correct during path canonicalization",
     "pattern": [{ "protocol": "(https|javascript)", "pathname": "var x = 1;" }],
     "inputs": [{ "protocol": "javascript", "pathname": "var x = 1;" }],
     "expected_obj": {
@@ -1378,6 +1381,7 @@
     "expected_match": null
   },
   {
+    "skip": "spec is not correct during path canonicalization",
     "pattern": [{ "pathname": "var x = 1;" }],
     "inputs": [{ "pathname": "var x = 1;" }],
     "expected_obj": {
