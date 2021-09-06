@@ -24,7 +24,8 @@ pub fn canonicalize_username(value: &str) -> Result<String, ParseError> {
     return Ok(String::new());
   }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url.set_username(value).unwrap(); // TODO: dont unwrap, instead ParseError
+  // Note: unwrap is safe, because this is a HTTP url that supports username.
+  url.set_username(value).unwrap();
   Ok(url.username().to_string())
 }
 
@@ -34,7 +35,8 @@ pub fn canonicalize_password(value: &str) -> Result<String, ParseError> {
     return Ok(String::new());
   }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url.set_password(Some(value)).unwrap(); // TODO: dont unwrap, instead ParseError
+  // Note: unwrap is safe, because this is a HTTP url that supports password.
+  url.set_password(Some(value)).unwrap();
   Ok(url.password().unwrap().to_string())
 }
 
@@ -44,7 +46,7 @@ pub fn canonicalize_hostname(value: &str) -> Result<String, ParseError> {
     return Ok(String::new());
   }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url::quirks::set_hostname(&mut url, value).unwrap(); // TODO: dont unwrap, instead ParseError
+  url.set_host(Some(value)).map_err(ParseError::Url)?;
   Ok(url::quirks::hostname(&url).to_string())
 }
 
@@ -54,7 +56,7 @@ pub fn canonicalize_ipv6_hostname(value: &str) -> Result<String, ParseError> {
     .chars()
     .all(|c| c.is_ascii_hexdigit() || matches!(c, '[' | ']' | ':'));
   if !valid_ipv6 {
-    Err(ParseError::SomeRandomOtherError)
+    Err(ParseError::Url(url::ParseError::InvalidIpv6Address))
   } else {
     Ok(value.to_ascii_lowercase())
   }
@@ -74,9 +76,11 @@ pub fn canonicalize_port(
   let port = value
     .parse::<u16>()
     .map_err(|_| ParseError::Url(url::ParseError::InvalidPort))?;
+  // Note: this unwrap is safe, because the protocol was previously parsed to be
+  // valid.
   let mut url =
     url::Url::parse(&format!("{}://dummy.test", protocol.unwrap_or("dummy")))
-      .unwrap(); // TODO: dont unwrap, instead ParseError
+      .unwrap();
   url.set_port(Some(port)).unwrap(); // TODO: dont unwrap, instead ParseError
   Ok(url::quirks::port(&url).to_string())
 }

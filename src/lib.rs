@@ -263,6 +263,7 @@ impl UrlPattern {
         parser::Options::hostname(),
       )?
     } else {
+      println!("hostname");
       Component::compile(
         processed_init.hostname.as_deref(),
         canonicalize_and_process::canonicalize_hostname,

@@ -1580,6 +1580,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/*?foo" ],
     "inputs": [ "https://example.com/?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search",
@@ -1609,6 +1610,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/:name?foo" ],
     "inputs": [ "https://example.com/bar?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search",
@@ -1638,6 +1640,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/(bar)?foo" ],
     "inputs": [ "https://example.com/bar?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search", "hash" ],
@@ -1666,6 +1669,7 @@
     }
   },
   {
+    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/{bar}?foo" ],
     "inputs": [ "https://example.com/bar?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search", "hash" ],
