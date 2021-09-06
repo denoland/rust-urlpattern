@@ -1,4 +1,9 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+//! rust-urlpattern is an implementation of the
+//! [URLPattern standard](https://wicg.github.io/urlpattern) for the Rust
+//! programming language.
+//!
+//! For a usage example, see the [UrlPattern] documentation.
 
 mod canonicalize_and_process;
 mod component;
@@ -186,6 +191,28 @@ pub enum UrlPatternInput {
 
 // Ref: https://wicg.github.io/urlpattern/#urlpattern
 /// A UrlPattern that can be matched against.
+///
+/// # Examples
+///
+/// ```
+/// use urlpattern::UrlPattern;
+/// use urlpattern::UrlPatternInput;
+/// use urlpattern::UrlPatternInit;
+///
+///# fn main() {
+/// // Create the UrlPattern to match against.
+/// let init = UrlPatternInit {
+///   pathname: Some("/users/:id".to_owned()),
+///   ..Default::default()
+/// };
+/// let pattern = UrlPattern::parse(UrlPatternInput::UrlPatternInit(init), None).unwrap();
+///
+/// // Match the pattern against a URL.
+/// let url = "https://example.com/users/123".to_owned();
+/// let result = pattern.exec(UrlPatternInput::String(url), None).unwrap().unwrap();
+/// assert_eq!(result.pathname.groups.get("id").unwrap(), "123");
+///# }
+/// ```
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UrlPattern {
   protocol: Component,
