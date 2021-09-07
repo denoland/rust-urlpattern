@@ -141,7 +141,7 @@ pub fn parse_pattern(init: crate::UrlPatternInit) -> Result<UrlPattern, Error> {
   Ok(urlpattern)
 }
 
-type Inputs = (StringOrInit, Option<String>);
+pub type Inputs = (StringOrInit, Option<String>);
 
 pub fn process_match_input(
   input: StringOrInit,
