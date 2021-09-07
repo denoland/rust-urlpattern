@@ -8,10 +8,24 @@ use crate::Error;
 // Ref: https://wicg.github.io/urlpattern/#full-wildcard-regexp-value
 pub const FULL_WILDCARD_REGEXP_VALUE: &str = ".*";
 
+/// The regexp syntax that should be used.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RegexSyntax {
+  /// Compile regexes to rust-regex syntax. This is the default.
+  Rust,
+  /// Compile regexes to ECMAScript syntax. This should be used with the
+  /// [crate::quirks::component_regex].
+  ///
+  /// NOTE: enabling this syntax kind, means the regex syntax will NOT be
+  /// validated during parsing.
+  EcmaScript,
+}
+
 // Ref: https://wicg.github.io/urlpattern/#options-header
 pub struct Options {
   delimiter_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
   pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
+  regex_syntax: RegexSyntax,
 }
 
 impl std::default::Default for Options {
@@ -21,6 +35,7 @@ impl std::default::Default for Options {
     Options {
       delimiter_code_point: String::new(),
       prefix_code_point: String::new(),
+      regex_syntax: RegexSyntax::Rust,
     }
   }
 }
@@ -32,6 +47,7 @@ impl Options {
     Options {
       delimiter_code_point: String::from("."),
       prefix_code_point: String::new(),
+      regex_syntax: RegexSyntax::Rust,
     }
   }
 
@@ -41,7 +57,44 @@ impl Options {
     Options {
       delimiter_code_point: String::from("/"),
       prefix_code_point: String::from("/"),
+      regex_syntax: RegexSyntax::Rust,
     }
+  }
+
+  pub fn with_syntax(mut self, syntax: RegexSyntax) -> Self {
+    self.regex_syntax = syntax;
+    self
+  }
+
+  // Ref: https://wicg.github.io/urlpattern/#escape-a-regexp-string
+  pub fn escape_regexp_string(&self, input: &str) -> String {
+    assert!(input.is_ascii());
+    let mut result = String::new();
+    for char in input.chars() {
+      if matches!(
+        char,
+        '.'
+        | '+'
+        | '*'
+        | '?'
+        | '^'
+        | '$'
+        | '{'
+        | '}'
+        | '('
+        | ')'
+        | '['
+        | ']'
+        | '|'
+        // | '/': deviation from spec, rust regexp crate does not handle '\/' as a valid escape sequence
+        | '\\'
+      ) || (char == '/' && self.regex_syntax == RegexSyntax::EcmaScript)
+      {
+        result.push('\\');
+      }
+      result.push(char);
+    }
+    result
   }
 
   // Ref: https://wicg.github.io/urlpattern/#generate-a-segment-wildcard-regexp
@@ -53,7 +106,10 @@ impl Options {
     if self.delimiter_code_point.is_empty() {
       ".+?".to_owned()
     } else {
-      format!("[^{}]+?", escape_regexp_string(&self.delimiter_code_point))
+      format!(
+        "[^{}]+?",
+        self.escape_regexp_string(&self.delimiter_code_point)
+      )
     }
   }
 }
@@ -382,34 +438,4 @@ where
   }
 
   Ok(parser.part_list)
-}
-
-// Ref: https://wicg.github.io/urlpattern/#escape-a-regexp-string
-pub fn escape_regexp_string(input: &str) -> String {
-  assert!(input.is_ascii());
-  let mut result = String::new();
-  for char in input.chars() {
-    if matches!(
-      char,
-      '.'
-        | '+'
-        | '*'
-        | '?'
-        | '^'
-        | '$'
-        | '{'
-        | '}'
-        | '('
-        | ')'
-        | '['
-        | ']'
-        | '|'
-        // | '/': deviation from spec, rust regexp crate does not handle '\/' as a valid escape sequence
-        | '\\'
-    ) {
-      result.push('\\');
-    }
-    result.push(char);
-  }
-  result
 }
