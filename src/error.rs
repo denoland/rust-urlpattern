@@ -11,7 +11,7 @@ pub enum Error {
   #[display(
     fmt = "specifying both an init object, and a seperate base URL is not valid"
   )]
-  NoBaseUrlWithInitObject,
+  BaseUrlWithInit,
 
   #[display(fmt = "tokenizer error: {} (at char {})", _0, _1)]
   Tokenizer(TokenizerError, usize),

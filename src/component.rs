@@ -1,6 +1,5 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-use crate::parser::escape_regexp_string;
 use crate::parser::Options;
 use crate::parser::Part;
 use crate::parser::PartModifier;
@@ -8,15 +7,12 @@ use crate::parser::PartType;
 use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
 use crate::Error;
 
-use serde::Deserialize;
-use serde::Serialize;
-
 // Ref: https://wicg.github.io/urlpattern/#component
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub(crate) struct Component {
   pub pattern_string: String,
-  #[serde(with = "serde_regex")]
-  pub regexp: regex::Regex,
+  pub rust_regexp: Result<regex::Regex, Error>,
+  pub ecma_regexp_string: String,
   pub group_name_list: Vec<String>,
 }
 
@@ -35,13 +31,18 @@ impl Component {
       &options,
       encoding_callback,
     )?;
-    let (regexp_string, name_list) =
+    let (rust_regexp_string, _) =
       generate_regular_expression_and_name_list(&part_list, &options);
-    let regexp = regex::Regex::new(&regexp_string).map_err(Error::RegEx)?;
+    let rust_regexp =
+      regex::Regex::new(&rust_regexp_string).map_err(Error::RegEx);
+    let options = options.with_syntax(crate::parser::RegexSyntax::EcmaScript);
+    let (ecma_regexp_string, name_list) =
+      generate_regular_expression_and_name_list(&part_list, &options);
     let pattern_string = generate_pattern_string(part_list, &options);
     Ok(Component {
       pattern_string,
-      regexp,
+      rust_regexp,
+      ecma_regexp_string,
       group_name_list: name_list,
     })
   }
@@ -50,9 +51,11 @@ impl Component {
   pub(crate) fn protocol_component_matches_special_scheme(&self) -> bool {
     const SPECIAL_SCHEMES: [&str; 6] =
       ["ftp", "file", "http", "https", "ws", "wss"];
-    for scheme in SPECIAL_SCHEMES {
-      if self.regexp.captures(scheme).is_some() {
-        return true;
+    if let Ok(regex) = &self.rust_regexp {
+      for scheme in SPECIAL_SCHEMES {
+        if regex.captures(scheme).is_some() {
+          return true;
+        }
       }
     }
     false
@@ -77,6 +80,16 @@ impl Component {
         .collect(),
     }
   }
+
+  pub(crate) fn optionally_transpose_regex_error(
+    mut self,
+    do_transpose: bool,
+  ) -> Result<Self, Error> {
+    if do_transpose {
+      self.rust_regexp = Ok(self.rust_regexp?);
+    }
+    Ok(self)
+  }
 }
 
 // Ref: https://wicg.github.io/urlpattern/#generate-a-regular-expression-and-name-list
@@ -89,11 +102,11 @@ fn generate_regular_expression_and_name_list(
   for part in part_list {
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
-        result.push_str(&escape_regexp_string(&part.value));
+        result.push_str(&options.escape_regexp_string(&part.value));
       } else {
         result.push_str(&format!(
           "(?:{}){}",
-          escape_regexp_string(&part.value),
+          options.escape_regexp_string(&part.value),
           part.modifier
         ));
       }
@@ -121,9 +134,9 @@ fn generate_regular_expression_and_name_list(
     if matches!(part.modifier, PartModifier::None | PartModifier::Optional) {
       result.push_str(&format!(
         "(?:{}({}){}){}",
-        escape_regexp_string(&part.prefix),
+        options.escape_regexp_string(&part.prefix),
         regexp_value,
-        escape_regexp_string(&part.suffix),
+        options.escape_regexp_string(&part.suffix),
         part.modifier
       ));
       continue;
@@ -131,12 +144,12 @@ fn generate_regular_expression_and_name_list(
     assert!(!part.prefix.is_empty() || !part.suffix.is_empty());
     result.push_str(&format!(
       "(?:{}((?:{})(?:{}{}(?:{}))*){}){}",
-      escape_regexp_string(&part.prefix),
+      options.escape_regexp_string(&part.prefix),
       regexp_value,
-      escape_regexp_string(&part.suffix),
-      escape_regexp_string(&part.prefix),
+      options.escape_regexp_string(&part.suffix),
+      options.escape_regexp_string(&part.prefix),
       regexp_value,
-      escape_regexp_string(&part.suffix),
+      options.escape_regexp_string(&part.suffix),
       if part.modifier == PartModifier::ZeroOrMore {
         "?" // TODO: https://github.com/WICG/urlpattern/issues/91
       } else {

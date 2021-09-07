@@ -10,6 +10,7 @@ mod component;
 mod constructor_parser;
 mod error;
 mod parser;
+pub mod quirks;
 mod tokenizer;
 
 pub use error::Error;
@@ -18,9 +19,6 @@ use url::Url;
 use crate::canonicalize_and_process::is_special_scheme;
 use crate::canonicalize_and_process::special_scheme_default_port;
 use crate::component::Component;
-
-use serde::Deserialize;
-use serde::Serialize;
 
 /// The structured input used to create a URL pattern.
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -204,7 +202,7 @@ fn is_absolute_pathname(
 /// assert_eq!(result.pathname.groups.get("id").unwrap(), "123");
 ///# }
 /// ```
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct UrlPattern {
   protocol: Component,
   username: Component,
@@ -225,7 +223,14 @@ pub enum UrlPatternMatchInput {
 impl UrlPattern {
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-urlpattern
   /// Parse a [UrlPatternInit] into a [UrlPattern].
-  pub fn parse(init: UrlPatternInit) -> Result<UrlPattern, Error> {
+  pub fn parse(init: UrlPatternInit) -> Result<Self, Error> {
+    Self::parse_internal(init, true)
+  }
+
+  pub(crate) fn parse_internal(
+    init: UrlPatternInit,
+    report_regex_errors: bool,
+  ) -> Result<Self, Error> {
     let mut processed_init = init.process(
       canonicalize_and_process::ProcessType::Pattern,
       None,
@@ -251,8 +256,9 @@ impl UrlPattern {
     let protocol = Component::compile(
       processed_init.protocol.as_deref(),
       canonicalize_and_process::canonicalize_protocol,
-      Default::default(),
-    )?;
+      parser::Options::default(),
+    )?
+    .optionally_transpose_regex_error(report_regex_errors)?;
 
     let hostname_is_ipv6 = processed_init
       .hostname
@@ -266,12 +272,14 @@ impl UrlPattern {
         canonicalize_and_process::canonicalize_ipv6_hostname,
         parser::Options::hostname(),
       )?
+      .optionally_transpose_regex_error(report_regex_errors)?
     } else {
       Component::compile(
         processed_init.hostname.as_deref(),
         canonicalize_and_process::canonicalize_hostname,
         parser::Options::hostname(),
       )?
+      .optionally_transpose_regex_error(report_regex_errors)?
     };
 
     let pathname = if protocol.protocol_component_matches_special_scheme() {
@@ -280,12 +288,14 @@ impl UrlPattern {
         canonicalize_and_process::canonicalize_pathname,
         parser::Options::pathname(),
       )?
+      .optionally_transpose_regex_error(report_regex_errors)?
     } else {
       Component::compile(
         processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_cannot_be_a_base_url_pathname,
-        Default::default(),
+        parser::Options::default(),
       )?
+      .optionally_transpose_regex_error(report_regex_errors)?
     };
 
     Ok(UrlPattern {
@@ -293,30 +303,35 @@ impl UrlPattern {
       username: Component::compile(
         processed_init.username.as_deref(),
         canonicalize_and_process::canonicalize_username,
-        Default::default(),
-      )?,
+        parser::Options::default(),
+      )?
+      .optionally_transpose_regex_error(report_regex_errors)?,
       password: Component::compile(
         processed_init.password.as_deref(),
         canonicalize_and_process::canonicalize_password,
-        Default::default(),
-      )?,
+        parser::Options::default(),
+      )?
+      .optionally_transpose_regex_error(report_regex_errors)?,
       hostname,
       port: Component::compile(
         processed_init.port.as_deref(),
         |port| canonicalize_and_process::canonicalize_port(port, None),
-        Default::default(),
-      )?,
+        parser::Options::default(),
+      )?
+      .optionally_transpose_regex_error(report_regex_errors)?,
       pathname,
       search: Component::compile(
         processed_init.search.as_deref(),
         canonicalize_and_process::canonicalize_search,
-        Default::default(),
-      )?,
+        parser::Options::default(),
+      )?
+      .optionally_transpose_regex_error(report_regex_errors)?,
       hash: Component::compile(
         processed_init.hash.as_deref(),
         canonicalize_and_process::canonicalize_hash,
-        Default::default(),
-      )?,
+        parser::Options::default(),
+      )?
+      .optionally_transpose_regex_error(report_regex_errors)?,
     })
   }
 
@@ -383,59 +398,59 @@ impl UrlPattern {
     &self,
     input: UrlPatternMatchInput,
   ) -> Result<Option<UrlPatternResult>, Error> {
-    let mut protocol = String::new();
-    let mut username = String::new();
-    let mut password = String::new();
-    let mut hostname = String::new();
-    let mut port = String::new();
-    let mut pathname = String::new();
-    let mut search = String::new();
-    let mut hash = String::new();
-    match input {
-      UrlPatternMatchInput::Init(init) => {
-        if let Ok(apply_result) = init.process(
-          canonicalize_and_process::ProcessType::Url,
-          Some(protocol),
-          Some(username),
-          Some(password),
-          Some(hostname),
-          Some(port),
-          Some(pathname),
-          Some(search),
-          Some(hash),
-        ) {
-          protocol = apply_result.protocol.unwrap();
-          username = apply_result.username.unwrap();
-          password = apply_result.password.unwrap();
-          hostname = apply_result.hostname.unwrap();
-          port = apply_result.port.unwrap();
-          pathname = apply_result.pathname.unwrap();
-          search = apply_result.search.unwrap();
-          hash = apply_result.hash.unwrap();
-        } else {
-          return Ok(None);
-        }
-      }
-      UrlPatternMatchInput::Url(url) => {
-        protocol = url.scheme().to_string();
-        username = url.username().to_string();
-        password = url.password().unwrap_or_default().to_string();
-        hostname = url.host_str().unwrap_or_default().to_string();
-        port = url::quirks::port(&url).to_string();
-        pathname = url::quirks::pathname(&url).to_string();
-        search = url.query().unwrap_or_default().to_string();
-        hash = url.fragment().unwrap_or_default().to_string();
-      }
-    }
+    let input = match crate::quirks::parse_match_input(input) {
+      Some(input) => input,
+      None => return Ok(None),
+    };
 
-    let protocol_exec_result = self.protocol.regexp.captures(&protocol);
-    let username_exec_result = self.username.regexp.captures(&username);
-    let password_exec_result = self.password.regexp.captures(&password);
-    let hostname_exec_result = self.hostname.regexp.captures(&hostname);
-    let port_exec_result = self.port.regexp.captures(&port);
-    let pathname_exec_result = self.pathname.regexp.captures(&pathname);
-    let search_exec_result = self.search.regexp.captures(&search);
-    let hash_exec_result = self.hash.regexp.captures(&hash);
+    let protocol_exec_result = self
+      .protocol
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.protocol);
+    let username_exec_result = self
+      .username
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.username);
+    let password_exec_result = self
+      .password
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.password);
+    let hostname_exec_result = self
+      .hostname
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.hostname);
+    let port_exec_result = self
+      .port
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.port);
+    let pathname_exec_result = self
+      .pathname
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.pathname);
+    let search_exec_result = self
+      .search
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.search);
+    let hash_exec_result = self
+      .hash
+      .rust_regexp
+      .as_ref()
+      .unwrap()
+      .captures(&input.hash);
 
     match (
       protocol_exec_result,
@@ -459,28 +474,28 @@ impl UrlPattern {
       ) => Ok(Some(UrlPatternResult {
         protocol: self
           .protocol
-          .create_match_result(protocol.clone(), protocol_exec_result),
+          .create_match_result(input.protocol.clone(), protocol_exec_result),
         username: self
           .username
-          .create_match_result(username.clone(), username_exec_result),
+          .create_match_result(input.username.clone(), username_exec_result),
         password: self
           .password
-          .create_match_result(password.clone(), password_exec_result),
+          .create_match_result(input.password.clone(), password_exec_result),
         hostname: self
           .hostname
-          .create_match_result(hostname.clone(), hostname_exec_result),
+          .create_match_result(input.hostname.clone(), hostname_exec_result),
         port: self
           .port
-          .create_match_result(port.clone(), port_exec_result),
+          .create_match_result(input.port.clone(), port_exec_result),
         pathname: self
           .pathname
-          .create_match_result(pathname.clone(), pathname_exec_result),
+          .create_match_result(input.pathname.clone(), pathname_exec_result),
         search: self
           .search
-          .create_match_result(search.clone(), search_exec_result),
+          .create_match_result(input.search.clone(), search_exec_result),
         hash: self
           .hash
-          .create_match_result(hash.clone(), hash_exec_result),
+          .create_match_result(input.hash.clone(), hash_exec_result),
       })),
       _ => Ok(None),
     }
@@ -526,46 +541,15 @@ mod tests {
   use std::collections::HashMap;
 
   use serde::Deserialize;
-  use serde::Serialize;
   use url::Url;
 
-  use crate::Error;
+  use crate::quirks;
+  use crate::quirks::StringOrInit;
   use crate::UrlPatternComponentResult;
-  use crate::UrlPatternMatchInput;
   use crate::UrlPatternResult;
 
   use super::UrlPattern;
   use super::UrlPatternInit;
-
-  #[derive(Debug, Clone, Deserialize, Serialize)]
-  struct Parts {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    protocol: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    password: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    hostname: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    port: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pathname: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    search: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    hash: Option<String>,
-    #[serde(rename = "baseURL", skip_serializing_if = "Option::is_none")]
-    base_url: Option<String>,
-  }
-
-  #[derive(Debug, Clone, Serialize, Deserialize)]
-  #[serde(untagged)]
-  #[allow(clippy::large_enum_variant)]
-  enum PartsOrString {
-    String(String),
-    Parts(Parts),
-  }
 
   #[derive(Deserialize)]
   #[serde(untagged)]
@@ -584,10 +568,10 @@ mod tests {
   #[derive(Deserialize)]
   struct TestCase {
     skip: Option<String>,
-    pattern: Vec<PartsOrString>,
+    pattern: Vec<quirks::StringOrInit>,
     #[serde(default)]
-    inputs: Vec<PartsOrString>,
-    expected_obj: Option<PartsOrString>,
+    inputs: Vec<quirks::StringOrInit>,
+    expected_obj: Option<quirks::StringOrInit>,
     expected_match: Option<ExpectedMatch>,
     #[serde(default)]
     exactly_empty_components: Vec<String>,
@@ -595,7 +579,7 @@ mod tests {
 
   #[derive(Debug, Deserialize)]
   struct MatchResult {
-    inputs: Option<Vec<PartsOrString>>,
+    inputs: Option<(quirks::StringOrInit, Option<String>)>,
 
     protocol: Option<ComponentResult>,
     username: Option<ComponentResult>,
@@ -610,8 +594,8 @@ mod tests {
   fn test_case(case: TestCase) {
     let input = case.pattern.get(0).unwrap().clone();
     let mut base_url = case.pattern.get(1).map(|input| match input {
-      PartsOrString::String(str) => str.clone(),
-      PartsOrString::Parts(_) => unreachable!(),
+      StringOrInit::String(str) => str.clone(),
+      StringOrInit::Init(_) => unreachable!(),
     });
 
     println!("\n=====");
@@ -626,57 +610,30 @@ mod tests {
       return;
     }
 
-    let init = match input.clone() {
-      PartsOrString::String(str) => base_url
-        .clone()
-        .map(|url| url.parse().map_err(Error::Url))
-        .transpose()
-        .and_then(|base_url| {
-          UrlPatternInit::parse_constructor_string(&str, base_url)
-        }),
-      PartsOrString::Parts(parts) => {
-        if base_url.is_some() {
-          Err(Error::Url(url::ParseError::Overflow)) // wrong error, but who cares?
-        } else {
-          parts
-            .base_url
-            .clone()
-            .map(|url| url.parse().map_err(Error::Url))
-            .transpose()
-            .map(|base_url| UrlPatternInit {
-              protocol: parts.protocol,
-              username: parts.username,
-              password: parts.password,
-              hostname: parts.hostname,
-              port: parts.port,
-              pathname: parts.pathname,
-              search: parts.search,
-              hash: parts.hash,
-              base_url,
-            })
-        }
-      }
-    };
+    let init_res = quirks::process_construct_pattern_input(
+      input.clone(),
+      base_url.as_deref(),
+    );
 
-    let res = init.and_then(UrlPattern::parse);
+    let res = init_res.and_then(UrlPattern::parse);
     let expected_obj = match case.expected_obj {
-      Some(PartsOrString::String(s)) if s == "error" => {
+      Some(StringOrInit::String(s)) if s == "error" => {
         assert!(res.is_err());
         println!("✅ Passed");
         return;
       }
-      Some(PartsOrString::String(_)) => unreachable!(),
-      Some(PartsOrString::Parts(parts)) => {
-        let base_url = parts.base_url.map(|url| url.parse().unwrap());
+      Some(StringOrInit::String(_)) => unreachable!(),
+      Some(StringOrInit::Init(init)) => {
+        let base_url = init.base_url.map(|url| url.parse().unwrap());
         UrlPatternInit {
-          protocol: parts.protocol,
-          username: parts.username,
-          password: parts.password,
-          hostname: parts.hostname,
-          port: parts.port,
-          pathname: parts.pathname,
-          search: parts.search,
-          hash: parts.hash,
+          protocol: init.protocol,
+          username: init.username,
+          password: init.password,
+          hostname: init.hostname,
+          port: init.port,
+          pathname: init.pathname,
+          search: init.search,
+          hash: init.hash,
           base_url,
         }
       }
@@ -684,7 +641,7 @@ mod tests {
     };
     let pattern = res.expect("failed to parse pattern");
 
-    if let PartsOrString::Parts(Parts {
+    if let StringOrInit::Init(quirks::UrlPatternInit {
       base_url: Some(url),
       ..
     }) = &input
@@ -701,7 +658,7 @@ mod tests {
             .contains(&stringify!($field).to_owned())
           {
             expected = Some(String::new())
-          } else if let PartsOrString::Parts(Parts {
+          } else if let StringOrInit::Init(quirks::UrlPatternInit {
             $field: Some($field),
             ..
           }) = &input
@@ -746,8 +703,8 @@ mod tests {
 
     let input = case.inputs.get(0).unwrap().clone();
     let base_url = case.inputs.get(1).map(|input| match input {
-      PartsOrString::String(str) => str.clone(),
-      PartsOrString::Parts(_) => unreachable!(),
+      StringOrInit::String(str) => str.clone(),
+      StringOrInit::Init(_) => unreachable!(),
     });
 
     println!(
@@ -756,40 +713,7 @@ mod tests {
       serde_json::to_string(&base_url).unwrap(),
     );
 
-    let match_input = match input {
-      PartsOrString::String(str) => {
-        let base_url = base_url.map(|url| url.parse::<Url>().ok()).flatten();
-        Ok(
-          Url::options()
-            .base_url(base_url.as_ref())
-            .parse(&str)
-            .ok()
-            .map(UrlPatternMatchInput::Url),
-        )
-      }
-      PartsOrString::Parts(parts) => {
-        if base_url.is_some() {
-          Err(Error::Url(url::ParseError::Overflow)) // wrong error, but who cares?
-        } else {
-          let base_url = parts
-            .base_url
-            .clone()
-            .map(|url| url.parse::<Url>().ok())
-            .flatten();
-          Ok(Some(UrlPatternMatchInput::Init(UrlPatternInit {
-            protocol: parts.protocol,
-            username: parts.username,
-            password: parts.password,
-            hostname: parts.hostname,
-            port: parts.port,
-            pathname: parts.pathname,
-            search: parts.search,
-            hash: parts.hash,
-            base_url,
-          })))
-        }
-      }
-    };
+    let match_input = quirks::process_match_input(input, base_url.as_deref());
 
     if let Some(ExpectedMatch::String(s)) = &case.expected_match {
       if s == "error" {
@@ -806,12 +730,12 @@ mod tests {
       println!("✅ Passed");
       return;
     }
-    let test_res = if let Some(input) = input.clone() {
+    let test_res = if let Some((input, _)) = input.clone() {
       pattern.test(input)
     } else {
       Ok(false)
     };
-    let exec_res = if let Some(input) = input {
+    let exec_res = if let Some((input, _)) = input {
       pattern.exec(input)
     } else {
       Ok(None)
