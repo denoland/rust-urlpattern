@@ -1178,7 +1178,6 @@
     "expected_match": null
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": "/foo/bar" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": null
@@ -1265,7 +1264,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": "foo/bar" }],
     "inputs": [ "https://example.com/foo/bar" ],
     "expected_match": null
@@ -1285,7 +1283,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": ":name.html", "baseURL": "https://example.com" }],
     "inputs": [ "https://example.com/foo.html"] ,
     "exactly_empty_components": [ "username", "password", "port", "search",
@@ -1403,7 +1400,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": "var x = 1;" }],
     "inputs": [{ "protocol": "javascript", "pathname": "var x = 1;" }],
     "expected_obj": {
@@ -1428,7 +1424,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "protocol": "(https|javascript)", "pathname": "var x = 1;" }],
     "inputs": [{ "protocol": "javascript", "pathname": "var x = 1;" }],
     "expected_obj": {
@@ -1437,7 +1432,6 @@
     "expected_match": null
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": "var x = 1;" }],
     "inputs": [{ "pathname": "var x = 1;" }],
     "expected_obj": {
@@ -1636,7 +1630,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/*?foo" ],
     "inputs": [ "https://example.com/?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search",
@@ -1666,7 +1659,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/:name?foo" ],
     "inputs": [ "https://example.com/bar?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search",
@@ -1696,7 +1688,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/(bar)?foo" ],
     "inputs": [ "https://example.com/bar?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search", "hash" ],
@@ -1725,7 +1716,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [ "https://example.com/{bar}?foo" ],
     "inputs": [ "https://example.com/bar?foo" ],
     "exactly_empty_components": [ "username", "password", "port", "search", "hash" ],
@@ -2251,7 +2241,6 @@
     "expected_obj": "error"
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": ":name*" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_match": {
@@ -2259,7 +2248,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": ":name+" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_match": {
@@ -2267,7 +2255,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "pathname": ":name" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_match": {
@@ -2275,7 +2262,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "protocol": ":name*" }],
     "inputs": [{ "protocol": "foobar" }],
     "expected_match": {
@@ -2283,7 +2269,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "protocol": ":name+" }],
     "inputs": [{ "protocol": "foobar" }],
     "expected_match": {
@@ -2291,7 +2276,6 @@
     }
   },
   {
-    "skip": "https://github.com/WICG/urlpattern/issues/128",
     "pattern": [{ "protocol": ":name" }],
     "inputs": [{ "protocol": "foobar" }],
     "expected_match": {

@@ -92,7 +92,11 @@ pub fn canonicalize_pathname(value: &str) -> Result<String, Error> {
   }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url.set_path(value);
-  Ok(url::quirks::pathname(&url).to_string())
+  let mut pathname = url::quirks::pathname(&url);
+  if !value.starts_with('/') {
+    pathname = &pathname[1..];
+  }
+  Ok(pathname.to_string())
 }
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-cannot-be-a-base-url-pathname
