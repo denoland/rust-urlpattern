@@ -1442,6 +1442,7 @@
     }
   },
   {
+    "skip": "https://github.com/denoland/rust-urlpattern/issues/12",
     "pattern": [{ "pathname": "/foo/bar" }],
     "inputs": [ "./foo/bar", "https://example.com" ],
     "expected_match": {

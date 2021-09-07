@@ -707,6 +707,8 @@ mod tests {
       StringOrInit::Init(_) => unreachable!(),
     });
 
+    let expected_input = (input.clone(), base_url.clone());
+
     println!(
       "Input: {}, {}",
       serde_json::to_string(&input).unwrap(),
@@ -735,7 +737,7 @@ mod tests {
     } else {
       Ok(false)
     };
-    let exec_res = if let Some((input, _)) = input {
+    let exec_res = if let Some((input, _)) = input.clone() {
       pattern.exec(input)
     } else {
       Ok(None)
@@ -773,6 +775,12 @@ mod tests {
     };
 
     let actual_match = actual_match.expect("expected match to be Some");
+
+    let expected_inputs = expected_match.inputs.unwrap_or(expected_input);
+
+    let (_, inputs) = input.unwrap();
+
+    assert_eq!(inputs, expected_inputs, "expected inputs to be identical");
 
     let exactly_empty_components = case.exactly_empty_components;
 
