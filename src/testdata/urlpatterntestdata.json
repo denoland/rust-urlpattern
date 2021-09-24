@@ -2416,7 +2416,7 @@
     "expected_obj": "error"
   },
   {
-    "skip": "TODO",
+    "skip": "bug in rust-url: https://github.com/servo/rust-url/pull/718",
     "pattern": [{ "hostname": "bad|hostname" }],
     "expected_obj": "error"
   },
