@@ -579,6 +579,8 @@ mod tests {
 
   #[derive(Debug, Deserialize)]
   struct MatchResult {
+    #[serde(deserialize_with = "deserialize_match_result_inputs")]
+    #[serde(default)]
     inputs: Option<(quirks::StringOrInit, Option<String>)>,
 
     protocol: Option<ComponentResult>,
@@ -591,8 +593,29 @@ mod tests {
     hash: Option<ComponentResult>,
   }
 
+  fn deserialize_match_result_inputs<'de, D>(
+    deserializer: D,
+  ) -> Result<Option<(quirks::StringOrInit, Option<String>)>, D::Error>
+  where
+    D: serde::Deserializer<'de>,
+  {
+    #[derive(Debug, Deserialize)]
+    #[serde(untagged)]
+    enum MatchResultInputs {
+      OneArgument((quirks::StringOrInit,)),
+      TwoArguments(quirks::StringOrInit, String),
+    }
+
+    let res = Option::<MatchResultInputs>::deserialize(deserializer)?;
+    Ok(match res {
+      Some(MatchResultInputs::OneArgument((a,))) => Some((a, None)),
+      Some(MatchResultInputs::TwoArguments(a, b)) => Some((a, Some(b))),
+      None => None,
+    })
+  }
+
   fn test_case(case: TestCase) {
-    let input = case.pattern.get(0).unwrap().clone();
+    let input = case.pattern.get(0).cloned();
     let mut base_url = case.pattern.get(1).map(|input| match input {
       StringOrInit::String(str) => str.clone(),
       StringOrInit::Init(_) => unreachable!(),
@@ -609,6 +632,8 @@ mod tests {
       println!("🟠 Skipping: {}", reason);
       return;
     }
+
+    let input = input.unwrap_or_else(|| StringOrInit::Init(Default::default()));
 
     let init_res = quirks::process_construct_pattern_input(
       input.clone(),
@@ -701,19 +726,21 @@ mod tests {
     assert_field!(search);
     assert_field!(hash);
 
-    let input = case.inputs.get(0).unwrap().clone();
+    let input = case.inputs.get(0).cloned();
     let base_url = case.inputs.get(1).map(|input| match input {
       StringOrInit::String(str) => str.clone(),
       StringOrInit::Init(_) => unreachable!(),
     });
-
-    let expected_input = (input.clone(), base_url.clone());
 
     println!(
       "Input: {}, {}",
       serde_json::to_string(&input).unwrap(),
       serde_json::to_string(&base_url).unwrap(),
     );
+
+    let input = input.unwrap_or_else(|| StringOrInit::Init(Default::default()));
+
+    let expected_input = (input.clone(), base_url.clone());
 
     let match_input = quirks::process_match_input(input, base_url.as_deref());
 

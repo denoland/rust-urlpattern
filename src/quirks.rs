@@ -7,7 +7,7 @@ use url::Url;
 
 pub use crate::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UrlPatternInit {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub protocol: Option<String>,
