@@ -164,6 +164,7 @@ fn generate_regular_expression_and_name_list(
 // Ref: https://wicg.github.io/urlpattern/#generate-a-pattern-string
 fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
   let mut result = String::new();
+  let mut prev_part: Option<Part> = None;
   for part in part_list {
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
@@ -196,7 +197,9 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
         .push_str(&format!("({})", options.generate_segment_wildcard_regexp())),
       PartType::SegmentWildcard => {}
       PartType::FullWildcard => {
-        if custom_name {
+        if custom_name
+          || matches!(prev_part, Some(Part {kind, modifier: PartModifier::None, .. }) if kind != PartType::FixedText)
+        {
           result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
         } else {
           result.push('*');
@@ -208,6 +211,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       result.push('}');
     }
     result.push_str(&part.modifier.to_string());
+    prev_part = Some(part);
   }
   result
 }
