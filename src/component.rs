@@ -164,8 +164,9 @@ fn generate_regular_expression_and_name_list(
 // Ref: https://wicg.github.io/urlpattern/#generate-a-pattern-string
 fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
   let mut result = String::new();
-  let mut prev_part: Option<Part> = None;
-  for part in part_list {
+  let mut prev_part: Option<&Part> = None;
+  for (i, part) in part_list.iter().enumerate() {
+    let next_part: Option<&Part> = part_list.get(i + 1);
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
         result.push_str(&escape_pattern_string(&part.value));
@@ -178,10 +179,18 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       ));
       continue;
     }
-    let needs_grouping = !part.suffix.is_empty()
-      || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point);
-    assert!(!part.name.is_empty());
     let custom_name = !part.name.chars().next().unwrap().is_ascii_digit();
+    let needs_grouping = !part.suffix.is_empty()
+      || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point)
+      || (custom_name
+        && part.kind == PartType::SegmentWildcard
+        && part.modifier == PartModifier::None
+        && matches!(next_part, Some(Part {kind, prefix, suffix, name, .. })
+          if kind != &PartType::FixedText
+            && prefix.is_empty()
+            && suffix.is_empty()
+            && name.chars().next().unwrap().is_ascii_digit()));
+    assert!(!part.name.is_empty());
     if needs_grouping {
       result.push('{');
     }
@@ -198,7 +207,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       PartType::SegmentWildcard => {}
       PartType::FullWildcard => {
         if custom_name
-          || matches!(prev_part, Some(Part {kind, modifier: PartModifier::None, .. }) if kind != PartType::FixedText)
+          || matches!(prev_part, Some(Part {kind, modifier: PartModifier::None, .. }) if kind != &PartType::FixedText)
         {
           result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
         } else {
