@@ -1,6 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-// NOTE to all: the code in this crate sometimes slighlty diverges from the
+// NOTE to all: the code in this crate sometimes slightly diverges from the
 // precise wording of the spec, because rust-url does not expose all the
 // routines exactly as the spec wants. The end behaviour should be identical.
 
@@ -99,10 +99,8 @@ pub fn canonicalize_pathname(value: &str) -> Result<String, Error> {
   Ok(pathname.to_string())
 }
 
-// Ref: https://wicg.github.io/urlpattern/#canonicalize-a-cannot-be-a-base-url-pathname
-pub fn canonicalize_cannot_be_a_base_url_pathname(
-  value: &str,
-) -> Result<String, Error> {
+// Ref: https://wicg.github.io/urlpattern/#canonicalize-an-opaque-pathname
+pub fn canonicalize_an_opaque_pathname(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
@@ -212,7 +210,7 @@ pub fn process_pathname_init(
       Some(protocol) if protocol.is_empty() || is_special_scheme(protocol) => {
         canonicalize_pathname(pathname_value)
       }
-      _ => canonicalize_cannot_be_a_base_url_pathname(pathname_value),
+      _ => canonicalize_an_opaque_pathname(pathname_value),
     }
   }
 }
