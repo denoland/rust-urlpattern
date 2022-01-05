@@ -2547,7 +2547,6 @@
     }
   },
   {
-    "skip": "1",
     "pattern": [{ "pathname": "{:foo\\bar}" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_match": {

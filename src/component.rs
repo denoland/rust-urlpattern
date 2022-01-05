@@ -5,6 +5,7 @@ use crate::parser::Part;
 use crate::parser::PartModifier;
 use crate::parser::PartType;
 use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
+use crate::tokenizer::is_valid_name_codepoint;
 use crate::Error;
 
 // Ref: https://wicg.github.io/urlpattern/#component
@@ -214,6 +215,13 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
           result.push('*');
         }
       }
+    }
+    if part.kind == PartType::SegmentWildcard
+      && custom_name
+      && !part.suffix.is_empty()
+      && is_valid_name_codepoint(part.suffix.chars().next().unwrap(), true)
+    {
+      result.push('\\');
     }
     result.push_str(&escape_pattern_string(&part.suffix));
     if needs_grouping {
