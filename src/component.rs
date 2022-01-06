@@ -219,7 +219,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
     if part.kind == PartType::SegmentWildcard
       && custom_name
       && !part.suffix.is_empty()
-      && is_valid_name_codepoint(part.suffix.chars().next().unwrap(), true)
+      && is_valid_name_codepoint(part.suffix.chars().next().unwrap(), false)
     {
       result.push('\\');
     }
