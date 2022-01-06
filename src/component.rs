@@ -181,16 +181,25 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       continue;
     }
     let custom_name = !part.name.chars().next().unwrap().is_ascii_digit();
-    let needs_grouping = !part.suffix.is_empty()
-      || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point)
-      || (custom_name
-        && part.kind == PartType::SegmentWildcard
-        && part.modifier == PartModifier::None
-        && matches!(next_part, Some(Part {kind, prefix, suffix, name, .. })
-          if kind != &PartType::FixedText
-            && prefix.is_empty()
-            && suffix.is_empty()
-            && name.chars().next().unwrap().is_ascii_digit()));
+    let mut needs_grouping = !part.suffix.is_empty()
+      || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point);
+    if !needs_grouping
+      && custom_name
+      && part.kind == PartType::SegmentWildcard
+      && part.modifier == PartModifier::None
+      && matches!(next_part, Some(Part { prefix, suffix, .. }) if prefix.is_empty() && suffix.is_empty())
+    {
+      let next_part = next_part.unwrap();
+      if next_part.kind == PartType::FixedText {
+        needs_grouping = is_valid_name_codepoint(
+          next_part.value.chars().next().unwrap(),
+          false,
+        );
+      } else {
+        needs_grouping =
+          next_part.name.chars().next().unwrap().is_ascii_digit();
+      }
+    }
     assert!(!part.name.is_empty());
     if needs_grouping {
       result.push('{');
