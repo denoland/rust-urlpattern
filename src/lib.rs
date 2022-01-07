@@ -127,10 +127,10 @@ impl UrlPatternInit {
         if !base_url.cannot_be_a_base()
           && !is_absolute_pathname(pathname, &kind)
         {
-          let baseurl_pathname = url::quirks::pathname(base_url);
-          let slash_index = baseurl_pathname.rfind('/');
+          let baseurl_path = url::quirks::pathname(base_url);
+          let slash_index = baseurl_path.rfind('/');
           if let Some(slash_index) = slash_index {
-            let new_pathname = baseurl_pathname[..=slash_index].to_string();
+            let new_pathname = baseurl_path[..=slash_index].to_string();
             result.pathname =
               Some(format!("{}{}", new_pathname, result.pathname.unwrap()));
           }
@@ -292,7 +292,7 @@ impl UrlPattern {
     } else {
       Component::compile(
         processed_init.pathname.as_deref(),
-        canonicalize_and_process::canonicalize_cannot_be_a_base_url_pathname,
+        canonicalize_and_process::canonicalize_an_opaque_pathname,
         parser::Options::default(),
       )?
       .optionally_transpose_regex_error(report_regex_errors)?

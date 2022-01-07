@@ -5,6 +5,7 @@ use crate::parser::Part;
 use crate::parser::PartModifier;
 use crate::parser::PartType;
 use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
+use crate::tokenizer::is_valid_name_codepoint;
 use crate::Error;
 
 // Ref: https://wicg.github.io/urlpattern/#component
@@ -164,7 +165,9 @@ fn generate_regular_expression_and_name_list(
 // Ref: https://wicg.github.io/urlpattern/#generate-a-pattern-string
 fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
   let mut result = String::new();
-  for part in part_list {
+  let mut prev_part: Option<&Part> = None;
+  for (i, part) in part_list.iter().enumerate() {
+    let next_part: Option<&Part> = part_list.get(i + 1);
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
         result.push_str(&escape_pattern_string(&part.value));
@@ -177,10 +180,27 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       ));
       continue;
     }
-    let needs_grouping = !part.suffix.is_empty()
-      || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point);
-    assert!(!part.name.is_empty());
     let custom_name = !part.name.chars().next().unwrap().is_ascii_digit();
+    let mut needs_grouping = !part.suffix.is_empty()
+      || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point);
+    if !needs_grouping
+      && custom_name
+      && part.kind == PartType::SegmentWildcard
+      && part.modifier == PartModifier::None
+      && matches!(next_part, Some(Part { prefix, suffix, .. }) if prefix.is_empty() && suffix.is_empty())
+    {
+      let next_part = next_part.unwrap();
+      if next_part.kind == PartType::FixedText {
+        needs_grouping = is_valid_name_codepoint(
+          next_part.value.chars().next().unwrap(),
+          false,
+        );
+      } else {
+        needs_grouping =
+          next_part.name.chars().next().unwrap().is_ascii_digit();
+      }
+    }
+    assert!(!part.name.is_empty());
     if needs_grouping {
       result.push('{');
     }
@@ -196,18 +216,28 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
         .push_str(&format!("({})", options.generate_segment_wildcard_regexp())),
       PartType::SegmentWildcard => {}
       PartType::FullWildcard => {
-        if custom_name {
+        if custom_name
+          || matches!(prev_part, Some(Part {kind, modifier: PartModifier::None, .. }) if kind != &PartType::FixedText)
+        {
           result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
         } else {
           result.push('*');
         }
       }
     }
+    if part.kind == PartType::SegmentWildcard
+      && custom_name
+      && !part.suffix.is_empty()
+      && is_valid_name_codepoint(part.suffix.chars().next().unwrap(), false)
+    {
+      result.push('\\');
+    }
     result.push_str(&escape_pattern_string(&part.suffix));
     if needs_grouping {
       result.push('}');
     }
     result.push_str(&part.modifier.to_string());
+    prev_part = Some(part);
   }
   result
 }

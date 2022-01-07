@@ -320,7 +320,7 @@ pub fn tokenize(
 
 // Ref: https://wicg.github.io/urlpattern/#is-a-valid-name-code-point
 #[inline]
-fn is_valid_name_codepoint(code_point: char, first: bool) -> bool {
+pub(crate) fn is_valid_name_codepoint(code_point: char, first: bool) -> bool {
   if first {
     unic_ucd_ident::is_id_start(code_point) || matches!(code_point, '$' | '_')
   } else {
