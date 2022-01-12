@@ -184,6 +184,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
     let mut needs_grouping = !part.suffix.is_empty()
       || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point);
     if !needs_grouping
+      && part.prefix.is_empty()
       && custom_name
       && part.kind == PartType::SegmentWildcard
       && part.modifier == PartModifier::None
@@ -199,6 +200,19 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
         needs_grouping =
           next_part.name.chars().next().unwrap().is_ascii_digit();
       }
+    }
+    if !needs_grouping
+      && part.prefix.is_empty()
+      && matches!(
+        prev_part,
+        Some(Part {
+          kind: PartType::FixedText,
+          value,
+          ..
+        }) if value.chars().last().unwrap().to_string() == options.prefix_code_point
+      )
+    {
+      needs_grouping = true;
     }
     assert!(!part.name.is_empty());
     if needs_grouping {
@@ -216,12 +230,16 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
         .push_str(&format!("({})", options.generate_segment_wildcard_regexp())),
       PartType::SegmentWildcard => {}
       PartType::FullWildcard => {
-        if custom_name
-          || matches!(prev_part, Some(Part {kind, modifier: PartModifier::None, .. }) if kind != &PartType::FixedText)
+        if !custom_name
+          && (prev_part.is_none()
+            || prev_part.unwrap().kind == PartType::FixedText
+            || prev_part.unwrap().modifier != PartModifier::None
+            || needs_grouping
+            || !part.prefix.is_empty())
         {
-          result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
-        } else {
           result.push('*');
+        } else {
+          result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
         }
       }
     }
