@@ -192,7 +192,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       let next_part = next_part.unwrap();
       if next_part.kind == PartType::FixedText {
         needs_grouping = is_valid_name_codepoint(
-          next_part.value.chars().next().unwrap(),
+          next_part.value.chars().next().unwrap_or_default(),
           false,
         );
       } else {
