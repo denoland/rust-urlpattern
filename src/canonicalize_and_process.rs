@@ -87,8 +87,8 @@ pub fn canonicalize_port(
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-pathname
 pub fn canonicalize_pathname(value: &str) -> Result<String, Error> {
-  if value.is_empty() {
-    return Ok(String::new());
+  if value.is_empty() || matches!(value, "." | "..") {
+    return Ok(value.to_string());
   }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
   url.set_path(value);
