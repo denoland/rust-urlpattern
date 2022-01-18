@@ -2640,5 +2640,32 @@
     "expected_match": {
       "pathname": { "input": "bazbar", "groups": { "foo": "baz" }}
     }
+  },
+  {
+    "pattern": [{ "pathname": "/:foo." }],
+    "inputs": [{ "pathname": "/bar." }],
+    "expected_match": {
+      "pathname": { "input": "/bar.", "groups": { "foo": "bar" } }
+    }
+  },
+  {
+    "pattern": [
+      {
+        "pathname": "/:foo.."
+      }
+    ],
+    "inputs": [
+      {
+        "pathname": "/bar.."
+      }
+    ],
+    "expected_match": {
+      "pathname": {
+        "input": "/bar..",
+        "groups": {
+          "foo": "bar"
+        }
+      }
+    }
   }
 ]
