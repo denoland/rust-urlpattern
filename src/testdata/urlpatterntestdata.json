@@ -2509,18 +2509,20 @@
     }
   },
   {
+    "skip": "1",
     "pattern": [{ "pathname": "{:foo}{(.*)bar}" }],
     "inputs": [{ "pathname": "foobarbaz" }],
     "expected_obj": {
-      "pathname": ":foo{(.*)bar}"
+      "pathname": ":foo{*bar}"
     },
     "expected_match": null
   },
   {
+    "skip": "2",
     "pattern": [{ "pathname": "{:foo}{bar(.*)}" }],
     "inputs": [{ "pathname": "foobarbaz" }],
     "expected_obj": {
-      "pathname": ":foo{bar(.*)}"
+      "pathname": ":foo{bar*}"
     },
     "expected_match": {
       "pathname": { "input": "foobarbaz", "groups": { "foo": "foo", "0": "baz" }}
@@ -2642,6 +2644,39 @@
     }
   },
   {
+    "skip": "3",
+    "pattern": [{ "pathname": "*/*" }],
+    "inputs": [{ "pathname": "foo/bar" }],
+    "expected_match": {
+      "pathname": { "input": "foo/bar", "groups": { "0": "foo", "1": "bar" }}
+    }
+  },
+  {
+    "skip": "4",
+    "pattern": [{ "pathname": "*\\/*" }],
+    "inputs": [{ "pathname": "foo/bar" }],
+    "expected_obj": {
+      "pathname": "*/{*}"
+    },
+    "expected_match": {
+      "pathname": { "input": "foo/bar", "groups": { "0": "foo", "1": "bar" }}
+    }
+  },
+  {
+    "skip": "5",
+    "pattern": [{ "pathname": "*/{*}" }],
+    "inputs": [{ "pathname": "foo/bar" }],
+    "expected_match": {
+      "pathname": { "input": "foo/bar", "groups": { "0": "foo", "1": "bar" }}
+    }
+  },
+  {
+    "skip": "6",
+    "pattern": [{ "pathname": "*//*" }],
+    "inputs": [{ "pathname": "foo/bar" }],
+    "expected_match": null
+  },
+  {
     "pattern": [{ "pathname": "/:foo." }],
     "inputs": [{ "pathname": "/bar." }],
     "expected_match": {
@@ -2649,23 +2684,38 @@
     }
   },
   {
-    "pattern": [
-      {
-        "pathname": "/:foo.."
-      }
-    ],
-    "inputs": [
-      {
-        "pathname": "/bar.."
-      }
-    ],
+    "pattern": [{ "pathname": "/:foo.." }],
+    "inputs": [{ "pathname": "/bar.." }],
     "expected_match": {
-      "pathname": {
-        "input": "/bar..",
-        "groups": {
-          "foo": "bar"
-        }
-      }
+      "pathname": { "input": "/bar..", "groups": { "foo": "bar" } }
+    }
+  },
+  {
+    "pattern": [{ "pathname": "./foo" }],
+    "inputs": [{ "pathname": "./foo" }],
+    "expected_match": {
+      "pathname": { "input": "./foo", "groups": {}}
+    }
+  },
+  {
+    "pattern": [{ "pathname": "../foo" }],
+    "inputs": [{ "pathname": "../foo" }],
+    "expected_match": {
+      "pathname": { "input": "../foo", "groups": {}}
+    }
+  },
+  {
+    "pattern": [{ "pathname": ":foo./" }],
+    "inputs": [{ "pathname": "bar./" }],
+    "expected_match": {
+      "pathname": { "input": "bar./", "groups": { "foo": "bar" }}
+    }
+  },
+  {
+    "pattern": [{ "pathname": ":foo../" }],
+    "inputs": [{ "pathname": "bar../" }],
+    "expected_match": {
+      "pathname": { "input": "bar../", "groups": { "foo": "bar" }}
     }
   }
 ]
