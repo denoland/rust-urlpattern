@@ -2671,5 +2671,15 @@
     "pattern": [{ "pathname": "*//*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": null
+  },
+  {
+    "pattern": [{ "pathname": "/:foo\\bar" }],
+    "inputs": [{ "pathname": "/bazbar" }],
+    "expected_obj": {
+      "pathname": "{/:foo}bar"
+    },
+    "expected_match": {
+      "pathname": { "input": "/bazbar", "groups": { "foo": "baz" }}
+    }
   }
 ]

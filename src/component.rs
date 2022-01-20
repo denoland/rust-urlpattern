@@ -184,7 +184,6 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
     let mut needs_grouping = !part.suffix.is_empty()
       || (!part.prefix.is_empty() && part.prefix != options.prefix_code_point);
     if !needs_grouping
-      && part.prefix.is_empty()
       && custom_name
       && part.kind == PartType::SegmentWildcard
       && part.modifier == PartModifier::None
