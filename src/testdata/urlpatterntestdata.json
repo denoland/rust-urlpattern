@@ -2649,6 +2649,7 @@
     }
   },
   {
+    "skip": "1",
     "pattern": [{ "pathname": "*\\/*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_obj": {
