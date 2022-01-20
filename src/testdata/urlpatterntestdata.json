@@ -2509,6 +2509,7 @@
     }
   },
   {
+    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "{:foo}{(.*)bar}" }],
     "inputs": [{ "pathname": "foobarbaz" }],
     "expected_obj": {
@@ -2517,6 +2518,7 @@
     "expected_match": null
   },
   {
+    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "{:foo}{bar(.*)}" }],
     "inputs": [{ "pathname": "foobarbaz" }],
     "expected_obj": {
@@ -2642,6 +2644,7 @@
     }
   },
   {
+    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*/*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": {
@@ -2649,7 +2652,7 @@
     }
   },
   {
-    "skip": "1",
+    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*\\/*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_obj": {
@@ -2660,7 +2663,7 @@
     }
   },
   {
-    "skip": "2",
+    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*/{*}" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": {
@@ -2668,6 +2671,7 @@
     }
   },
   {
+    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*//*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": null

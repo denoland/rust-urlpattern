@@ -861,4 +861,13 @@ mod tests {
       test_case(case);
     }
   }
+
+  #[test]
+  fn issue26() {
+    UrlPattern::parse(UrlPatternInit {
+      pathname: Some("/:foo.".to_owned()),
+      ..Default::default()
+    })
+    .unwrap();
+  }
 }
