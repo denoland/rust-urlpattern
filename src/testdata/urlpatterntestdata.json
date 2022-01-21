@@ -2649,7 +2649,6 @@
     }
   },
   {
-    "skip": "1",
     "pattern": [{ "pathname": "*\\/*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_obj": {
@@ -2660,7 +2659,6 @@
     }
   },
   {
-    "skip": "2",
     "pattern": [{ "pathname": "*/{*}" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": {

@@ -22,6 +22,7 @@ pub enum RegexSyntax {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#options-header
+#[derive(Debug)]
 pub struct Options {
   delimiter_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
   pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
@@ -309,6 +310,7 @@ where
     }
     let encoded_prefix = (self.encoding_callback)(prefix)?;
     let encoded_suffix = (self.encoding_callback)(suffix)?;
+    println!("{}", regexp_value);
     self.part_list.push(Part {
       kind,
       value: regexp_value,

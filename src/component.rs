@@ -164,10 +164,13 @@ fn generate_regular_expression_and_name_list(
 
 // Ref: https://wicg.github.io/urlpattern/#generate-a-pattern-string
 fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
+  println!("{:#?}", part_list);
   let mut result = String::new();
-  let mut prev_part: Option<&Part> = None;
   for (i, part) in part_list.iter().enumerate() {
+    let prev_part: Option<&Part> =
+      if i == 0 { None } else { part_list.get(i - 1) };
     let next_part: Option<&Part> = part_list.get(i + 1);
+    println!("{:#?}", prev_part);
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
         result.push_str(&escape_pattern_string(&part.value));
@@ -213,6 +216,10 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
     {
       needs_grouping = true;
     }
+    // skip 1 failure originates from the block above, as needs_grouping should be true, but is false
+    // prev_part.value should be /, just like options.prefix_code_point, which isnt the case as value is empty.
+    //println!("needs grouping: {:?} {:?}", prev_part, options.prefix_code_point);
+    //println!("needs grouping: {}", needs_grouping);
     assert!(!part.name.is_empty());
     if needs_grouping {
       result.push('{');
@@ -229,6 +236,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
         .push_str(&format!("({})", options.generate_segment_wildcard_regexp())),
       PartType::SegmentWildcard => {}
       PartType::FullWildcard => {
+        //println!("{:?} {:?} {:?} {:?}", result, part, prev_part, next_part);
         if !custom_name
           && (prev_part.is_none()
             || prev_part.unwrap().kind == PartType::FixedText
@@ -240,6 +248,7 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
         } else {
           result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
         }
+        //println!("{:?}", result);
       }
     }
     if part.kind == PartType::SegmentWildcard
@@ -254,7 +263,6 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       result.push('}');
     }
     result.push_str(&part.modifier.to_string());
-    prev_part = Some(part);
   }
   result
 }
