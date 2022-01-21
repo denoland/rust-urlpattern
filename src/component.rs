@@ -165,8 +165,9 @@ fn generate_regular_expression_and_name_list(
 // Ref: https://wicg.github.io/urlpattern/#generate-a-pattern-string
 fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
   let mut result = String::new();
-  let mut prev_part: Option<&Part> = None;
   for (i, part) in part_list.iter().enumerate() {
+    let prev_part: Option<&Part> =
+      if i == 0 { None } else { part_list.get(i - 1) };
     let next_part: Option<&Part> = part_list.get(i + 1);
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
@@ -200,6 +201,19 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
           next_part.name.chars().next().unwrap().is_ascii_digit();
       }
     }
+    if !needs_grouping
+      && part.prefix.is_empty()
+      && matches!(
+        prev_part,
+        Some(Part {
+          kind: PartType::FixedText,
+          value,
+          ..
+        }) if value.chars().last().unwrap().to_string() == options.prefix_code_point
+      )
+    {
+      needs_grouping = true;
+    }
     assert!(!part.name.is_empty());
     if needs_grouping {
       result.push('{');
@@ -216,12 +230,16 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
         .push_str(&format!("({})", options.generate_segment_wildcard_regexp())),
       PartType::SegmentWildcard => {}
       PartType::FullWildcard => {
-        if custom_name
-          || matches!(prev_part, Some(Part {kind, modifier: PartModifier::None, .. }) if kind != &PartType::FixedText)
+        if !custom_name
+          && (prev_part.is_none()
+            || prev_part.unwrap().kind == PartType::FixedText
+            || prev_part.unwrap().modifier != PartModifier::None
+            || needs_grouping
+            || !part.prefix.is_empty())
         {
-          result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
-        } else {
           result.push('*');
+        } else {
+          result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
         }
       }
     }
@@ -237,7 +255,6 @@ fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
       result.push('}');
     }
     result.push_str(&part.modifier.to_string());
-    prev_part = Some(part);
   }
   result
 }

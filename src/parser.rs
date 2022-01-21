@@ -22,6 +22,7 @@ pub enum RegexSyntax {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#options-header
+#[derive(Debug)]
 pub struct Options {
   delimiter_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
   pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?

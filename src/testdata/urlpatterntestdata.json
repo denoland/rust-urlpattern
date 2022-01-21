@@ -2509,7 +2509,6 @@
     }
   },
   {
-    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "{:foo}{(.*)bar}" }],
     "inputs": [{ "pathname": "foobarbaz" }],
     "expected_obj": {
@@ -2518,7 +2517,6 @@
     "expected_match": null
   },
   {
-    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "{:foo}{bar(.*)}" }],
     "inputs": [{ "pathname": "foobarbaz" }],
     "expected_obj": {
@@ -2644,7 +2642,6 @@
     }
   },
   {
-    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*/*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": {
@@ -2652,7 +2649,6 @@
     }
   },
   {
-    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*\\/*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_obj": {
@@ -2663,7 +2659,6 @@
     }
   },
   {
-    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*/{*}" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": {
@@ -2671,7 +2666,6 @@
     }
   },
   {
-    "skip": "potentially rust-urlpattern#25",
     "pattern": [{ "pathname": "*//*" }],
     "inputs": [{ "pathname": "foo/bar" }],
     "expected_match": null
@@ -2716,6 +2710,16 @@
     "inputs": [{ "pathname": "bar../" }],
     "expected_match": {
       "pathname": { "input": "bar../", "groups": { "foo": "bar" }}
+    }
+  },
+  {
+    "pattern": [{ "pathname": "/:foo\\bar" }],
+    "inputs": [{ "pathname": "/bazbar" }],
+    "expected_obj": {
+      "pathname": "{/:foo}bar"
+    },
+    "expected_match": {
+      "pathname": { "input": "/bazbar", "groups": { "foo": "baz" }}
     }
   }
 ]
