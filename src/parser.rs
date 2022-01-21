@@ -310,7 +310,6 @@ where
     }
     let encoded_prefix = (self.encoding_callback)(prefix)?;
     let encoded_suffix = (self.encoding_callback)(suffix)?;
-    println!("{}", regexp_value);
     self.part_list.push(Part {
       kind,
       value: regexp_value,
