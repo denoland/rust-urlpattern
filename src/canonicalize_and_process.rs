@@ -87,14 +87,20 @@ pub fn canonicalize_port(
 
 // Ref: https://wicg.github.io/urlpattern/#canonicalize-a-pathname
 pub fn canonicalize_pathname(value: &str) -> Result<String, Error> {
-  if value.is_empty() || matches!(value, "." | "..") {
-    return Ok(value.to_string());
+  if value.is_empty() {
+    return Ok(String::new());
   }
+  let leading_slash = value.starts_with('/');
+  let modified_value = if !leading_slash {
+    format!("/-{}", value)
+  } else {
+    value.to_string()
+  };
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url.set_path(value);
+  url.set_path(&modified_value);
   let mut pathname = url::quirks::pathname(&url);
-  if !value.starts_with('/') {
-    pathname = &pathname[1..];
+  if !leading_slash {
+    pathname = &pathname[2..];
   }
   Ok(pathname.to_string())
 }
