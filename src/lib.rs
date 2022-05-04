@@ -11,6 +11,7 @@ mod constructor_parser;
 mod error;
 mod parser;
 pub mod quirks;
+mod regexp;
 mod tokenizer;
 
 pub use error::Error;
@@ -19,6 +20,7 @@ use url::Url;
 use crate::canonicalize_and_process::is_special_scheme;
 use crate::canonicalize_and_process::special_scheme_default_port;
 use crate::component::Component;
+use crate::regexp::RegExp;
 
 /// The structured input used to create a URL pattern.
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -35,11 +37,11 @@ pub struct UrlPatternInit {
 }
 
 impl UrlPatternInit {
-  pub fn parse_constructor_string(
+  pub fn parse_constructor_string<R: RegExp>(
     pattern: &str,
     base_url: Option<Url>,
   ) -> Result<UrlPatternInit, Error> {
-    let mut init = constructor_parser::parse_constructor_string(pattern)?;
+    let mut init = constructor_parser::parse_constructor_string::<R>(pattern)?;
     if base_url.is_none() && init.protocol.is_none() {
       return Err(Error::BaseUrlRequired);
     }
@@ -194,7 +196,7 @@ fn is_absolute_pathname(
 ///   pathname: Some("/users/:id".to_owned()),
 ///   ..Default::default()
 /// };
-/// let pattern = UrlPattern::parse(init).unwrap();
+/// let pattern = <UrlPattern>::parse(init).unwrap();
 ///
 /// // Match the pattern against a URL.
 /// let url = "https://example.com/users/123".parse().unwrap();
@@ -203,15 +205,15 @@ fn is_absolute_pathname(
 ///# }
 /// ```
 #[derive(Debug)]
-pub struct UrlPattern {
-  protocol: Component,
-  username: Component,
-  password: Component,
-  hostname: Component,
-  port: Component,
-  pathname: Component,
-  search: Component,
-  hash: Component,
+pub struct UrlPattern<R: RegExp = regex::Regex> {
+  protocol: Component<R>,
+  username: Component<R>,
+  password: Component<R>,
+  hostname: Component<R>,
+  port: Component<R>,
+  pathname: Component<R>,
+  search: Component<R>,
+  hash: Component<R>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -220,7 +222,7 @@ pub enum UrlPatternMatchInput {
   Url(Url),
 }
 
-impl UrlPattern {
+impl<R: RegExp> UrlPattern<R> {
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-urlpattern
   /// Parse a [UrlPatternInit] into a [UrlPattern].
   pub fn parse(init: UrlPatternInit) -> Result<Self, Error> {
@@ -405,52 +407,40 @@ impl UrlPattern {
 
     let protocol_exec_result = self
       .protocol
-      .rust_regexp
+      .regexp
       .as_ref()
       .unwrap()
-      .captures(&input.protocol);
+      .matches(&input.protocol);
     let username_exec_result = self
       .username
-      .rust_regexp
+      .regexp
       .as_ref()
       .unwrap()
-      .captures(&input.username);
+      .matches(&input.username);
     let password_exec_result = self
       .password
-      .rust_regexp
+      .regexp
       .as_ref()
       .unwrap()
-      .captures(&input.password);
+      .matches(&input.password);
     let hostname_exec_result = self
       .hostname
-      .rust_regexp
+      .regexp
       .as_ref()
       .unwrap()
-      .captures(&input.hostname);
-    let port_exec_result = self
-      .port
-      .rust_regexp
-      .as_ref()
-      .unwrap()
-      .captures(&input.port);
+      .matches(&input.hostname);
+    let port_exec_result =
+      self.port.regexp.as_ref().unwrap().matches(&input.port);
     let pathname_exec_result = self
       .pathname
-      .rust_regexp
+      .regexp
       .as_ref()
       .unwrap()
-      .captures(&input.pathname);
-    let search_exec_result = self
-      .search
-      .rust_regexp
-      .as_ref()
-      .unwrap()
-      .captures(&input.search);
-    let hash_exec_result = self
-      .hash
-      .rust_regexp
-      .as_ref()
-      .unwrap()
-      .captures(&input.hash);
+      .matches(&input.pathname);
+    let search_exec_result =
+      self.search.regexp.as_ref().unwrap().matches(&input.search);
+    let hash_exec_result =
+      self.hash.regexp.as_ref().unwrap().matches(&input.hash);
 
     match (
       protocol_exec_result,
@@ -640,7 +630,7 @@ mod tests {
       base_url.as_deref(),
     );
 
-    let res = init_res.and_then(UrlPattern::parse);
+    let res = init_res.and_then(<UrlPattern>::parse);
     let expected_obj = match case.expected_obj {
       Some(StringOrInit::String(s)) if s == "error" => {
         assert!(res.is_err());
@@ -864,7 +854,7 @@ mod tests {
 
   #[test]
   fn issue26() {
-    UrlPattern::parse(UrlPatternInit {
+    <UrlPattern>::parse(UrlPatternInit {
       pathname: Some("/:foo.".to_owned()),
       ..Default::default()
     })

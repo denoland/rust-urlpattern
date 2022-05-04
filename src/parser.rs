@@ -62,11 +62,6 @@ impl Options {
     }
   }
 
-  pub fn with_syntax(mut self, syntax: RegexSyntax) -> Self {
-    self.regex_syntax = syntax;
-    self
-  }
-
   // Ref: https://wicg.github.io/urlpattern/#escape-a-regexp-string
   pub fn escape_regexp_string(&self, input: &str) -> String {
     assert!(input.is_ascii());

@@ -23,7 +23,7 @@ fn main() {
     pathname: Some("/users/:id".to_owned()),
     ..Default::default()
   };
-  let pattern = UrlPattern::parse(init).unwrap();
+  let pattern = <UrlPattern>::parse(init).unwrap();
 
   // Match the pattern against a URL.
   let url = "https://example.com/users/123".parse().unwrap();

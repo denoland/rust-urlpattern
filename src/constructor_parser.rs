@@ -1,6 +1,7 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
 use crate::error::Error;
+use crate::regexp::RegExp;
 use crate::tokenizer::Token;
 use crate::tokenizer::TokenType;
 use crate::UrlPatternInit;
@@ -193,9 +194,11 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#compute-protocol-matches-a-special-scheme-flag
-  fn compute_protocol_matches_special_scheme(&mut self) -> Result<(), Error> {
+  fn compute_protocol_matches_special_scheme<R: RegExp>(
+    &mut self,
+  ) -> Result<(), Error> {
     let protocol_string = self.make_component_string();
-    let protocol_component = crate::component::Component::compile(
+    let protocol_component = crate::component::Component::<R>::compile(
       Some(&protocol_string),
       crate::canonicalize_and_process::canonicalize_protocol,
       Default::default(),
@@ -230,7 +233,7 @@ impl<'a> ConstructorStringParser<'a> {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#parse-a-constructor-string
-pub(crate) fn parse_constructor_string(
+pub(crate) fn parse_constructor_string<R: RegExp>(
   input: &str,
 ) -> Result<UrlPatternInit, Error> {
   let token_list = crate::tokenizer::tokenize(
@@ -315,7 +318,7 @@ pub(crate) fn parse_constructor_string(
       }
       ConstructorStringParserState::Protocol => {
         if parser.is_protocol_suffix() {
-          parser.compute_protocol_matches_special_scheme()?;
+          parser.compute_protocol_matches_special_scheme::<R>()?;
           if parser.protocol_matches_special_scheme {
             parser.result.pathname = Some(String::from("/"));
           }
