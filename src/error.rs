@@ -20,7 +20,9 @@ pub enum Error {
   Parser(ParserError),
 
   Url(url::ParseError),
-  RegEx(regex::Error),
+
+  #[display(fmt = "regexp error")]
+  RegExp(()),
 }
 
 impl std::error::Error for Error {}

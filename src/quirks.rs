@@ -5,6 +5,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
+use crate::parser::RegexSyntax;
+use crate::regexp::RegExp;
 pub use crate::Error;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,7 +49,9 @@ pub fn process_construct_pattern_input(
     StringOrInit::String(pattern) => {
       let base_url =
         base_url.map(Url::parse).transpose().map_err(Error::Url)?;
-      crate::UrlPatternInit::parse_constructor_string(&pattern, base_url)?
+      crate::UrlPatternInit::parse_constructor_string::<regex::Regex>(
+        &pattern, base_url,
+      )?
     }
     StringOrInit::Init(init) => {
       if base_url.is_some() {
@@ -93,48 +97,64 @@ pub struct UrlPatternComponent {
   pub group_name_list: Vec<String>,
 }
 
+struct EcmaRegexp(String);
+
+impl RegExp for EcmaRegexp {
+  fn syntax() -> RegexSyntax {
+    RegexSyntax::EcmaScript
+  }
+
+  fn parse(pattern: &str) -> Result<Self, ()> {
+    Ok(EcmaRegexp(pattern.to_string()))
+  }
+
+  fn matches<'a>(&self, _text: &'a str) -> Option<Vec<&'a str>> {
+    unimplemented!()
+  }
+}
+
 /// Parse a pattern into its components.
 pub fn parse_pattern(init: crate::UrlPatternInit) -> Result<UrlPattern, Error> {
-  let pattern = crate::UrlPattern::parse_internal(init, false)?;
+  let pattern = crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false)?;
   let urlpattern = UrlPattern {
     protocol: UrlPatternComponent {
       pattern_string: pattern.protocol.pattern_string,
-      regexp_string: pattern.protocol.ecma_regexp_string,
+      regexp_string: pattern.protocol.regexp.unwrap().0,
       group_name_list: pattern.protocol.group_name_list,
     },
     username: UrlPatternComponent {
       pattern_string: pattern.username.pattern_string,
-      regexp_string: pattern.username.ecma_regexp_string,
+      regexp_string: pattern.username.regexp.unwrap().0,
       group_name_list: pattern.username.group_name_list,
     },
     password: UrlPatternComponent {
       pattern_string: pattern.password.pattern_string,
-      regexp_string: pattern.password.ecma_regexp_string,
+      regexp_string: pattern.password.regexp.unwrap().0,
       group_name_list: pattern.password.group_name_list,
     },
     hostname: UrlPatternComponent {
       pattern_string: pattern.hostname.pattern_string,
-      regexp_string: pattern.hostname.ecma_regexp_string,
+      regexp_string: pattern.hostname.regexp.unwrap().0,
       group_name_list: pattern.hostname.group_name_list,
     },
     port: UrlPatternComponent {
       pattern_string: pattern.port.pattern_string,
-      regexp_string: pattern.port.ecma_regexp_string,
+      regexp_string: pattern.port.regexp.unwrap().0,
       group_name_list: pattern.port.group_name_list,
     },
     pathname: UrlPatternComponent {
       pattern_string: pattern.pathname.pattern_string,
-      regexp_string: pattern.pathname.ecma_regexp_string,
+      regexp_string: pattern.pathname.regexp.unwrap().0,
       group_name_list: pattern.pathname.group_name_list,
     },
     search: UrlPatternComponent {
       pattern_string: pattern.search.pattern_string,
-      regexp_string: pattern.search.ecma_regexp_string,
+      regexp_string: pattern.search.regexp.unwrap().0,
       group_name_list: pattern.search.group_name_list,
     },
     hash: UrlPatternComponent {
       pattern_string: pattern.hash.pattern_string,
-      regexp_string: pattern.hash.ecma_regexp_string,
+      regexp_string: pattern.hash.regexp.unwrap().0,
       group_name_list: pattern.hash.group_name_list,
     },
   };

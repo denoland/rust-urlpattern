@@ -5,19 +5,19 @@ use crate::parser::Part;
 use crate::parser::PartModifier;
 use crate::parser::PartType;
 use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
+use crate::regexp::RegExp;
 use crate::tokenizer::is_valid_name_codepoint;
 use crate::Error;
 
 // Ref: https://wicg.github.io/urlpattern/#component
 #[derive(Debug)]
-pub(crate) struct Component {
+pub(crate) struct Component<R: RegExp> {
   pub pattern_string: String,
-  pub rust_regexp: Result<regex::Regex, Error>,
-  pub ecma_regexp_string: String,
+  pub regexp: Result<R, Error>,
   pub group_name_list: Vec<String>,
 }
 
-impl Component {
+impl<R: RegExp> Component<R> {
   // Ref: https://wicg.github.io/urlpattern/#compile-a-component
   pub(crate) fn compile<F>(
     input: Option<&str>,
@@ -32,18 +32,13 @@ impl Component {
       &options,
       encoding_callback,
     )?;
-    let (rust_regexp_string, _) =
+    let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
-    let rust_regexp =
-      regex::Regex::new(&rust_regexp_string).map_err(Error::RegEx);
-    let options = options.with_syntax(crate::parser::RegexSyntax::EcmaScript);
-    let (ecma_regexp_string, name_list) =
-      generate_regular_expression_and_name_list(&part_list, &options);
+    let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
     let pattern_string = generate_pattern_string(part_list, &options);
     Ok(Component {
       pattern_string,
-      rust_regexp,
-      ecma_regexp_string,
+      regexp,
       group_name_list: name_list,
     })
   }
@@ -52,9 +47,9 @@ impl Component {
   pub(crate) fn protocol_component_matches_special_scheme(&self) -> bool {
     const SPECIAL_SCHEMES: [&str; 6] =
       ["ftp", "file", "http", "https", "ws", "wss"];
-    if let Ok(regex) = &self.rust_regexp {
+    if let Ok(regex) = &self.regexp {
       for scheme in SPECIAL_SCHEMES {
-        if regex.captures(scheme).is_some() {
+        if regex.matches(scheme).is_some() {
           return true;
         }
       }
@@ -66,20 +61,15 @@ impl Component {
   pub(crate) fn create_match_result(
     &self,
     input: String,
-    exec_result: regex::Captures,
+    exec_result: Vec<&str>,
   ) -> crate::UrlPatternComponentResult {
-    let mut iter = exec_result.iter();
-    iter.next(); // first match is entire string
-    crate::UrlPatternComponentResult {
-      input,
-      groups: self
-        .group_name_list
-        .clone()
-        .into_iter()
-        .zip(iter.map(|e| e.map(|e| e.as_str().to_string())))
-        .map(|(name, key)| (name, key.unwrap_or_default()))
-        .collect(),
-    }
+    let groups = self
+      .group_name_list
+      .clone()
+      .into_iter()
+      .zip(exec_result.into_iter().map(str::to_owned))
+      .collect();
+    crate::UrlPatternComponentResult { input, groups }
   }
 
   pub(crate) fn optionally_transpose_regex_error(
@@ -87,7 +77,7 @@ impl Component {
     do_transpose: bool,
   ) -> Result<Self, Error> {
     if do_transpose {
-      self.rust_regexp = Ok(self.rust_regexp?);
+      self.regexp = Ok(self.regexp?);
     }
     Ok(self)
   }
