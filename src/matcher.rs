@@ -69,7 +69,7 @@ impl<R: RegExp> Matcher<R> {
     }
 
     match &self.inner {
-      InnerMatcher::Literal { literal } => (input == literal).then(|| vec![]),
+      InnerMatcher::Literal { literal } => (input == literal).then(Vec::new),
       InnerMatcher::SingleCapture {
         filter,
         allow_empty,

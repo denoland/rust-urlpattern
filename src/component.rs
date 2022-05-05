@@ -165,9 +165,9 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
     let prev_part: Option<&Part> = if i == 0 {
       None
     } else {
-      part_list.get(i - 1).map(|s| *s)
+      part_list.get(i - 1).copied()
     };
-    let next_part: Option<&Part> = part_list.get(i + 1).map(|s| *s);
+    let next_part: Option<&Part> = part_list.get(i + 1).copied();
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
         result.push_str(&escape_pattern_string(&part.value));
@@ -280,16 +280,6 @@ fn generate_matcher<R: RegExp>(
     part.kind == PartType::FixedText && part.modifier == PartModifier::None
   }
 
-  fn regexp_from_parts<R: RegExp>(
-    part_list: &[&Part],
-    options: &Options,
-  ) -> InnerMatcher<R> {
-    let (regexp_string, _) =
-      generate_regular_expression_and_name_list(&part_list, &options);
-    let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
-    InnerMatcher::RegExp { regexp }
-  }
-
   // If the first part is a fixed string, we can use it as a literal prefix.
   let mut prefix = match part_list.first() {
     Some(part) if is_literal(part) => {
@@ -302,7 +292,7 @@ fn generate_matcher<R: RegExp>(
   let mut suffix = match part_list.last() {
     Some(part) if is_literal(part) => {
       part_list = &part_list[..part_list.len() - 1];
-      part.value.clone().into()
+      part.value.clone()
     }
     _ => "".into(),
   };
@@ -350,7 +340,12 @@ fn generate_matcher<R: RegExp>(
       }
     }
     // For all other cases, we fall back to a regexp matcher.
-    part_list => regexp_from_parts(part_list, options),
+    part_list => {
+      let (regexp_string, _) =
+        generate_regular_expression_and_name_list(part_list, options);
+      let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
+      InnerMatcher::RegExp { regexp }
+    }
   };
 
   Matcher {
