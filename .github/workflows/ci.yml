@@ -15,10 +15,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
-      - name: Install rust
-        uses: hecrj/setup-rust-action@v1.3.4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          rust-version: 1.55.0
+          rust-version: 1.60.0
           components: clippy,rustfmt
 
       - name: Format

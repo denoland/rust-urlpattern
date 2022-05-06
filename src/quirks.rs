@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
+use crate::component::Component;
 use crate::parser::RegexSyntax;
 use crate::regexp::RegExp;
 pub use crate::Error;
@@ -94,7 +95,74 @@ pub struct UrlPattern {
 pub struct UrlPatternComponent {
   pub pattern_string: String,
   pub regexp_string: String,
+  pub matcher: Matcher,
   pub group_name_list: Vec<String>,
+}
+
+impl From<Component<EcmaRegexp>> for UrlPatternComponent {
+  fn from(component: Component<EcmaRegexp>) -> Self {
+    Self {
+      pattern_string: component.pattern_string,
+      regexp_string: component.regexp.unwrap().0,
+      matcher: component.matcher.into(),
+      group_name_list: component.group_name_list,
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Matcher {
+  pub prefix: String,
+  pub suffix: String,
+  #[serde(flatten)]
+  pub inner: InnerMatcher,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "kind")]
+pub enum InnerMatcher {
+  Literal {
+    literal: String,
+  },
+  #[serde(rename_all = "camelCase")]
+  SingleCapture {
+    filter: Option<String>,
+    allow_empty: bool,
+  },
+  RegExp {
+    regexp: String,
+  },
+}
+
+impl From<crate::matcher::Matcher<EcmaRegexp>> for Matcher {
+  fn from(matcher: crate::matcher::Matcher<EcmaRegexp>) -> Self {
+    Self {
+      prefix: matcher.prefix,
+      suffix: matcher.suffix,
+      inner: matcher.inner.into(),
+    }
+  }
+}
+
+impl From<crate::matcher::InnerMatcher<EcmaRegexp>> for InnerMatcher {
+  fn from(inner: crate::matcher::InnerMatcher<EcmaRegexp>) -> Self {
+    match inner {
+      crate::matcher::InnerMatcher::Literal { literal } => {
+        Self::Literal { literal }
+      }
+      crate::matcher::InnerMatcher::SingleCapture {
+        filter,
+        allow_empty,
+      } => Self::SingleCapture {
+        filter,
+        allow_empty,
+      },
+      crate::matcher::InnerMatcher::RegExp { regexp } => Self::RegExp {
+        regexp: regexp.unwrap().0,
+      },
+    }
+  }
 }
 
 struct EcmaRegexp(String);
@@ -108,8 +176,9 @@ impl RegExp for EcmaRegexp {
     Ok(EcmaRegexp(pattern.to_string()))
   }
 
-  fn matches<'a>(&self, _text: &'a str) -> Option<Vec<&'a str>> {
-    unimplemented!()
+  fn matches<'a>(&self, text: &'a str) -> Option<Vec<&'a str>> {
+    let regexp = regex::Regex::parse(&self.0).ok()?;
+    regexp.matches(text)
   }
 }
 
@@ -117,46 +186,14 @@ impl RegExp for EcmaRegexp {
 pub fn parse_pattern(init: crate::UrlPatternInit) -> Result<UrlPattern, Error> {
   let pattern = crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false)?;
   let urlpattern = UrlPattern {
-    protocol: UrlPatternComponent {
-      pattern_string: pattern.protocol.pattern_string,
-      regexp_string: pattern.protocol.regexp.unwrap().0,
-      group_name_list: pattern.protocol.group_name_list,
-    },
-    username: UrlPatternComponent {
-      pattern_string: pattern.username.pattern_string,
-      regexp_string: pattern.username.regexp.unwrap().0,
-      group_name_list: pattern.username.group_name_list,
-    },
-    password: UrlPatternComponent {
-      pattern_string: pattern.password.pattern_string,
-      regexp_string: pattern.password.regexp.unwrap().0,
-      group_name_list: pattern.password.group_name_list,
-    },
-    hostname: UrlPatternComponent {
-      pattern_string: pattern.hostname.pattern_string,
-      regexp_string: pattern.hostname.regexp.unwrap().0,
-      group_name_list: pattern.hostname.group_name_list,
-    },
-    port: UrlPatternComponent {
-      pattern_string: pattern.port.pattern_string,
-      regexp_string: pattern.port.regexp.unwrap().0,
-      group_name_list: pattern.port.group_name_list,
-    },
-    pathname: UrlPatternComponent {
-      pattern_string: pattern.pathname.pattern_string,
-      regexp_string: pattern.pathname.regexp.unwrap().0,
-      group_name_list: pattern.pathname.group_name_list,
-    },
-    search: UrlPatternComponent {
-      pattern_string: pattern.search.pattern_string,
-      regexp_string: pattern.search.regexp.unwrap().0,
-      group_name_list: pattern.search.group_name_list,
-    },
-    hash: UrlPatternComponent {
-      pattern_string: pattern.hash.pattern_string,
-      regexp_string: pattern.hash.regexp.unwrap().0,
-      group_name_list: pattern.hash.group_name_list,
-    },
+    protocol: pattern.protocol.into(),
+    username: pattern.username.into(),
+    password: pattern.password.into(),
+    hostname: pattern.hostname.into(),
+    port: pattern.port.into(),
+    pathname: pattern.pathname.into(),
+    search: pattern.search.into(),
+    hash: pattern.hash.into(),
   };
   Ok(urlpattern)
 }

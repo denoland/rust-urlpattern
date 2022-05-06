@@ -1,5 +1,7 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+use crate::matcher::InnerMatcher;
+use crate::matcher::Matcher;
 use crate::parser::Options;
 use crate::parser::Part;
 use crate::parser::PartModifier;
@@ -15,6 +17,7 @@ pub(crate) struct Component<R: RegExp> {
   pub pattern_string: String,
   pub regexp: Result<R, Error>,
   pub group_name_list: Vec<String>,
+  pub matcher: Matcher<R>,
 }
 
 impl<R: RegExp> Component<R> {
@@ -32,14 +35,17 @@ impl<R: RegExp> Component<R> {
       &options,
       encoding_callback,
     )?;
+    let part_list = part_list.iter().collect::<Vec<_>>();
     let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
     let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
-    let pattern_string = generate_pattern_string(part_list, &options);
+    let pattern_string = generate_pattern_string(&part_list, &options);
+    let matcher = generate_matcher::<R>(&part_list, &options);
     Ok(Component {
       pattern_string,
       regexp,
       group_name_list: name_list,
+      matcher,
     })
   }
 
@@ -85,7 +91,7 @@ impl<R: RegExp> Component<R> {
 
 // Ref: https://wicg.github.io/urlpattern/#generate-a-regular-expression-and-name-list
 fn generate_regular_expression_and_name_list(
-  part_list: &[Part],
+  part_list: &[&Part],
   options: &Options,
 ) -> (String, Vec<String>) {
   let mut result = String::from("^");
@@ -153,12 +159,15 @@ fn generate_regular_expression_and_name_list(
 }
 
 // Ref: https://wicg.github.io/urlpattern/#generate-a-pattern-string
-fn generate_pattern_string(part_list: Vec<Part>, options: &Options) -> String {
+fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
   let mut result = String::new();
   for (i, part) in part_list.iter().enumerate() {
-    let prev_part: Option<&Part> =
-      if i == 0 { None } else { part_list.get(i - 1) };
-    let next_part: Option<&Part> = part_list.get(i + 1);
+    let prev_part: Option<&Part> = if i == 0 {
+      None
+    } else {
+      part_list.get(i - 1).copied()
+    };
+    let next_part: Option<&Part> = part_list.get(i + 1).copied();
     if part.kind == PartType::FixedText {
       if part.modifier == PartModifier::None {
         result.push_str(&escape_pattern_string(&part.value));
@@ -260,4 +269,88 @@ fn escape_pattern_string(input: &str) -> String {
     result.push(char);
   }
   result
+}
+
+/// This function generates a matcher for a given parts list.
+fn generate_matcher<R: RegExp>(
+  mut part_list: &[&Part],
+  options: &Options,
+) -> Matcher<R> {
+  fn is_literal(part: &Part) -> bool {
+    part.kind == PartType::FixedText && part.modifier == PartModifier::None
+  }
+
+  // If the first part is a fixed string, we can use it as a literal prefix.
+  let mut prefix = match part_list.first() {
+    Some(part) if is_literal(part) => {
+      part_list = &part_list[1..];
+      part.value.clone()
+    }
+    _ => "".into(),
+  };
+  // If the last part is a fixed string, we can use it as a literal suffix.
+  let mut suffix = match part_list.last() {
+    Some(part) if is_literal(part) => {
+      part_list = &part_list[..part_list.len() - 1];
+      part.value.clone()
+    }
+    _ => "".into(),
+  };
+
+  // If there are no more parts, we must have a prefix and/or a suffix. We can
+  // combine these into a single fixed text literal matcher.
+  if part_list.is_empty() {
+    return Matcher::literal(format!("{prefix}{suffix}"));
+  }
+
+  let inner = match part_list {
+    // If there is only one part, and it is a simple full wildcard with no
+    // prefix or suffix, we can use a simple wildcard matcher.
+    [part]
+      if part.kind == PartType::FullWildcard
+        && part.modifier == PartModifier::None =>
+    {
+      prefix += &part.prefix;
+      if !part.suffix.is_empty() {
+        suffix = format!("{}{suffix}", part.suffix);
+      }
+      InnerMatcher::SingleCapture {
+        filter: None,
+        allow_empty: true,
+      }
+    }
+    // If there is only one part, and it is a simple segment wildcard with no
+    // prefix or suffix, we can use a simple wildcard matcher.
+    [part]
+      if part.kind == PartType::SegmentWildcard
+        && part.modifier == PartModifier::None =>
+    {
+      prefix += &part.prefix;
+      if !part.suffix.is_empty() {
+        suffix = format!("{}{suffix}", part.suffix);
+      }
+      let filter = if options.delimiter_code_point.is_empty() {
+        None
+      } else {
+        Some(options.delimiter_code_point.clone())
+      };
+      InnerMatcher::SingleCapture {
+        filter,
+        allow_empty: false,
+      }
+    }
+    // For all other cases, we fall back to a regexp matcher.
+    part_list => {
+      let (regexp_string, _) =
+        generate_regular_expression_and_name_list(part_list, options);
+      let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
+      InnerMatcher::RegExp { regexp }
+    }
+  };
+
+  Matcher {
+    prefix,
+    suffix,
+    inner,
+  }
 }

@@ -9,6 +9,7 @@ mod canonicalize_and_process;
 mod component;
 mod constructor_parser;
 mod error;
+mod matcher;
 mod parser;
 pub mod quirks;
 mod regexp;
@@ -405,42 +406,14 @@ impl<R: RegExp> UrlPattern<R> {
       None => return Ok(None),
     };
 
-    let protocol_exec_result = self
-      .protocol
-      .regexp
-      .as_ref()
-      .unwrap()
-      .matches(&input.protocol);
-    let username_exec_result = self
-      .username
-      .regexp
-      .as_ref()
-      .unwrap()
-      .matches(&input.username);
-    let password_exec_result = self
-      .password
-      .regexp
-      .as_ref()
-      .unwrap()
-      .matches(&input.password);
-    let hostname_exec_result = self
-      .hostname
-      .regexp
-      .as_ref()
-      .unwrap()
-      .matches(&input.hostname);
-    let port_exec_result =
-      self.port.regexp.as_ref().unwrap().matches(&input.port);
-    let pathname_exec_result = self
-      .pathname
-      .regexp
-      .as_ref()
-      .unwrap()
-      .matches(&input.pathname);
-    let search_exec_result =
-      self.search.regexp.as_ref().unwrap().matches(&input.search);
-    let hash_exec_result =
-      self.hash.regexp.as_ref().unwrap().matches(&input.hash);
+    let protocol_exec_result = self.protocol.matcher.matches(&input.protocol);
+    let username_exec_result = self.username.matcher.matches(&input.username);
+    let password_exec_result = self.password.matcher.matches(&input.password);
+    let hostname_exec_result = self.hostname.matcher.matches(&input.hostname);
+    let port_exec_result = self.port.matcher.matches(&input.port);
+    let pathname_exec_result = self.pathname.matcher.matches(&input.pathname);
+    let search_exec_result = self.search.matcher.matches(&input.search);
+    let hash_exec_result = self.hash.matcher.matches(&input.hash);
 
     match (
       protocol_exec_result,
