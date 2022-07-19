@@ -183,8 +183,12 @@ impl RegExp for EcmaRegexp {
 }
 
 /// Parse a pattern into its components.
-pub fn parse_pattern(init: crate::UrlPatternInit, ignore_case: bool) -> Result<UrlPattern, Error> {
-  let pattern = crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false, ignore_case)?;
+pub fn parse_pattern(
+  init: crate::UrlPatternInit,
+  ignore_case: bool,
+) -> Result<UrlPattern, Error> {
+  let pattern =
+    crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false, ignore_case)?;
   let urlpattern = UrlPattern {
     protocol: pattern.protocol.into(),
     username: pattern.username.into(),
