@@ -197,7 +197,7 @@ fn is_absolute_pathname(
 ///   pathname: Some("/users/:id".to_owned()),
 ///   ..Default::default()
 /// };
-/// let pattern = <UrlPattern>::parse(init).unwrap();
+/// let pattern = <UrlPattern>::parse(init, false).unwrap();
 ///
 /// // Match the pattern against a URL.
 /// let url = "https://example.com/users/123".parse().unwrap();
@@ -226,13 +226,14 @@ pub enum UrlPatternMatchInput {
 impl<R: RegExp> UrlPattern<R> {
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-urlpattern
   /// Parse a [UrlPatternInit] into a [UrlPattern].
-  pub fn parse(init: UrlPatternInit) -> Result<Self, Error> {
-    Self::parse_internal(init, true)
+  pub fn parse(init: UrlPatternInit, ignore_case: bool) -> Result<Self, Error> {
+    Self::parse_internal(init, true, ignore_case)
   }
 
   pub(crate) fn parse_internal(
     init: UrlPatternInit,
     report_regex_errors: bool,
+    ignore_case: bool,
   ) -> Result<Self, Error> {
     let mut processed_init = init.process(
       canonicalize_and_process::ProcessType::Pattern,
@@ -285,18 +286,26 @@ impl<R: RegExp> UrlPattern<R> {
       .optionally_transpose_regex_error(report_regex_errors)?
     };
 
+    let compile_options = parser::Options {
+      ignore_case,
+      ..Default::default()
+    };
+
     let pathname = if protocol.protocol_component_matches_special_scheme() {
       Component::compile(
         processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_pathname,
-        parser::Options::pathname(),
+        parser::Options {
+          ignore_case,
+          ..parser::Options::pathname()
+        },
       )?
       .optionally_transpose_regex_error(report_regex_errors)?
     } else {
       Component::compile(
         processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_an_opaque_pathname,
-        parser::Options::default(),
+        compile_options.clone(),
       )?
       .optionally_transpose_regex_error(report_regex_errors)?
     };
@@ -326,13 +335,13 @@ impl<R: RegExp> UrlPattern<R> {
       search: Component::compile(
         processed_init.search.as_deref(),
         canonicalize_and_process::canonicalize_search,
-        parser::Options::default(),
+        compile_options.clone(),
       )?
       .optionally_transpose_regex_error(report_regex_errors)?,
       hash: Component::compile(
         processed_init.hash.as_deref(),
         canonicalize_and_process::canonicalize_hash,
-        parser::Options::default(),
+        compile_options,
       )?
       .optionally_transpose_regex_error(report_regex_errors)?,
     })
@@ -501,6 +510,7 @@ pub struct UrlPatternComponentResult {
 
 #[cfg(test)]
 mod tests {
+  use regex::Regex;
   use std::collections::HashMap;
 
   use serde::Deserialize;
@@ -603,7 +613,8 @@ mod tests {
       base_url.as_deref(),
     );
 
-    let res = init_res.and_then(<UrlPattern>::parse);
+    let res =
+      init_res.and_then(|init_res| UrlPattern::<Regex>::parse(init_res, false)); // TODO: once tests are available set flag accordingly
     let expected_obj = match case.expected_obj {
       Some(StringOrInit::String(s)) if s == "error" => {
         assert!(res.is_err());
@@ -827,10 +838,13 @@ mod tests {
 
   #[test]
   fn issue26() {
-    <UrlPattern>::parse(UrlPatternInit {
-      pathname: Some("/:foo.".to_owned()),
-      ..Default::default()
-    })
+    UrlPattern::<Regex>::parse(
+      UrlPatternInit {
+        pathname: Some("/:foo.".to_owned()),
+        ..Default::default()
+      },
+      false,
+    )
     .unwrap();
   }
 }

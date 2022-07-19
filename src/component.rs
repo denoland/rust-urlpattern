@@ -38,9 +38,10 @@ impl<R: RegExp> Component<R> {
     let part_list = part_list.iter().collect::<Vec<_>>();
     let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
-    let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
+    let flags = if options.ignore_case { "ui" } else { "u" };
+    let regexp = R::parse(&regexp_string, flags).map_err(Error::RegExp);
     let pattern_string = generate_pattern_string(&part_list, &options);
-    let matcher = generate_matcher::<R>(&part_list, &options);
+    let matcher = generate_matcher::<R>(&part_list, &options, flags);
     Ok(Component {
       pattern_string,
       regexp,
@@ -275,6 +276,7 @@ fn escape_pattern_string(input: &str) -> String {
 fn generate_matcher<R: RegExp>(
   mut part_list: &[&Part],
   options: &Options,
+  flags: &str,
 ) -> Matcher<R> {
   fn is_literal(part: &Part) -> bool {
     part.kind == PartType::FixedText && part.modifier == PartModifier::None
@@ -343,7 +345,7 @@ fn generate_matcher<R: RegExp>(
     part_list => {
       let (regexp_string, _) =
         generate_regular_expression_and_name_list(part_list, options);
-      let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
+      let regexp = R::parse(&regexp_string, flags).map_err(Error::RegExp);
       InnerMatcher::RegExp { regexp }
     }
   };

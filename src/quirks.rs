@@ -165,26 +165,26 @@ impl From<crate::matcher::InnerMatcher<EcmaRegexp>> for InnerMatcher {
   }
 }
 
-struct EcmaRegexp(String);
+struct EcmaRegexp(String, String);
 
 impl RegExp for EcmaRegexp {
   fn syntax() -> RegexSyntax {
     RegexSyntax::EcmaScript
   }
 
-  fn parse(pattern: &str) -> Result<Self, ()> {
-    Ok(EcmaRegexp(pattern.to_string()))
+  fn parse(pattern: &str, flags: &str) -> Result<Self, ()> {
+    Ok(EcmaRegexp(pattern.to_string(), flags.to_string()))
   }
 
   fn matches<'a>(&self, text: &'a str) -> Option<Vec<&'a str>> {
-    let regexp = regex::Regex::parse(&self.0).ok()?;
+    let regexp = regex::Regex::parse(&self.0, &self.1).ok()?;
     regexp.matches(text)
   }
 }
 
 /// Parse a pattern into its components.
-pub fn parse_pattern(init: crate::UrlPatternInit) -> Result<UrlPattern, Error> {
-  let pattern = crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false)?;
+pub fn parse_pattern(init: crate::UrlPatternInit, ignore_case: bool) -> Result<UrlPattern, Error> {
+  let pattern = crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false, ignore_case)?;
   let urlpattern = UrlPattern {
     protocol: pattern.protocol.into(),
     username: pattern.username.into(),
