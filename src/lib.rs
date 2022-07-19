@@ -23,6 +23,12 @@ use crate::canonicalize_and_process::special_scheme_default_port;
 use crate::component::Component;
 use crate::regexp::RegExp;
 
+/// Options to create a URL pattern.
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+pub struct UrlPatternOptions {
+  ignore_case: bool,
+}
+
 /// The structured input used to create a URL pattern.
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct UrlPatternInit {
@@ -197,7 +203,7 @@ fn is_absolute_pathname(
 ///   pathname: Some("/users/:id".to_owned()),
 ///   ..Default::default()
 /// };
-/// let pattern = <UrlPattern>::parse(init, false).unwrap();
+/// let pattern = <UrlPattern>::parse(init, Default::default()).unwrap();
 ///
 /// // Match the pattern against a URL.
 /// let url = "https://example.com/users/123".parse().unwrap();
@@ -226,14 +232,17 @@ pub enum UrlPatternMatchInput {
 impl<R: RegExp> UrlPattern<R> {
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-urlpattern
   /// Parse a [UrlPatternInit] into a [UrlPattern].
-  pub fn parse(init: UrlPatternInit, ignore_case: bool) -> Result<Self, Error> {
-    Self::parse_internal(init, true, ignore_case)
+  pub fn parse(
+    init: UrlPatternInit,
+    options: UrlPatternOptions,
+  ) -> Result<Self, Error> {
+    Self::parse_internal(init, true, options)
   }
 
   pub(crate) fn parse_internal(
     init: UrlPatternInit,
     report_regex_errors: bool,
-    ignore_case: bool,
+    options: UrlPatternOptions,
   ) -> Result<Self, Error> {
     let mut processed_init = init.process(
       canonicalize_and_process::ProcessType::Pattern,
@@ -287,7 +296,7 @@ impl<R: RegExp> UrlPattern<R> {
     };
 
     let compile_options = parser::Options {
-      ignore_case,
+      ignore_case: options.ignore_case,
       ..Default::default()
     };
 
@@ -296,7 +305,7 @@ impl<R: RegExp> UrlPattern<R> {
         processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_pathname,
         parser::Options {
-          ignore_case,
+          ignore_case: options.ignore_case,
           ..parser::Options::pathname()
         },
       )?
@@ -613,8 +622,9 @@ mod tests {
       base_url.as_deref(),
     );
 
-    let res =
-      init_res.and_then(|init_res| UrlPattern::<Regex>::parse(init_res, false)); // TODO: once tests are available set flag accordingly
+    let res = init_res.and_then(|init_res| {
+      UrlPattern::<Regex>::parse(init_res, Default::default())
+    }); // TODO: once tests are available set flag accordingly
     let expected_obj = match case.expected_obj {
       Some(StringOrInit::String(s)) if s == "error" => {
         assert!(res.is_err());
@@ -843,7 +853,7 @@ mod tests {
         pathname: Some("/:foo.".to_owned()),
         ..Default::default()
       },
-      false,
+      Default::default(),
     )
     .unwrap();
   }

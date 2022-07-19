@@ -9,6 +9,7 @@ use crate::component::Component;
 use crate::parser::RegexSyntax;
 use crate::regexp::RegExp;
 pub use crate::Error;
+use crate::UrlPatternOptions;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UrlPatternInit {
@@ -185,10 +186,10 @@ impl RegExp for EcmaRegexp {
 /// Parse a pattern into its components.
 pub fn parse_pattern(
   init: crate::UrlPatternInit,
-  ignore_case: bool,
+  options: UrlPatternOptions,
 ) -> Result<UrlPattern, Error> {
   let pattern =
-    crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false, ignore_case)?;
+    crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false, options)?;
   let urlpattern = UrlPattern {
     protocol: pattern.protocol.into(),
     username: pattern.username.into(),
