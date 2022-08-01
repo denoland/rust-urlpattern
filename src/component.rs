@@ -67,13 +67,13 @@ impl<R: RegExp> Component<R> {
   pub(crate) fn create_match_result(
     &self,
     input: String,
-    exec_result: Vec<&str>,
+    exec_result: Vec<Option<&str>>,
   ) -> crate::UrlPatternComponentResult {
     let groups = self
       .group_name_list
       .clone()
       .into_iter()
-      .zip(exec_result.into_iter().map(str::to_owned))
+      .zip(exec_result.into_iter().map(|s| s.map(str::to_owned)))
       .collect();
     crate::UrlPatternComponentResult { input, groups }
   }

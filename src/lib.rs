@@ -496,7 +496,7 @@ pub struct UrlPatternComponentResult {
   /// The matched input for this component.
   pub input: String,
   /// The values for all named groups in the pattern.
-  pub groups: std::collections::HashMap<String, String>,
+  pub groups: std::collections::HashMap<String, Option<String>>,
 }
 
 #[cfg(test)]
@@ -525,7 +525,7 @@ mod tests {
   #[derive(Debug, Deserialize)]
   struct ComponentResult {
     input: String,
-    groups: HashMap<String, String>,
+    groups: HashMap<String, Option<String>>,
   }
 
   #[derive(Deserialize)]
@@ -787,7 +787,7 @@ mod tests {
             if !exactly_empty_components
               .contains(&stringify!($component).to_owned())
             {
-              groups.insert("0".to_owned(), "".to_owned());
+              groups.insert("0".to_owned(), Some("".to_owned()));
             }
             UrlPatternComponentResult {
               input: "".to_owned(),
