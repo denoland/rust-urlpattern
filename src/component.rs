@@ -10,6 +10,7 @@ use crate::parser::FULL_WILDCARD_REGEXP_VALUE;
 use crate::regexp::RegExp;
 use crate::tokenizer::is_valid_name_codepoint;
 use crate::Error;
+use std::fmt::Write;
 
 // Ref: https://wicg.github.io/urlpattern/#component
 #[derive(Debug)]
@@ -38,9 +39,10 @@ impl<R: RegExp> Component<R> {
     let part_list = part_list.iter().collect::<Vec<_>>();
     let (regexp_string, name_list) =
       generate_regular_expression_and_name_list(&part_list, &options);
-    let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
+    let flags = if options.ignore_case { "ui" } else { "u" };
+    let regexp = R::parse(&regexp_string, flags).map_err(Error::RegExp);
     let pattern_string = generate_pattern_string(&part_list, &options);
-    let matcher = generate_matcher::<R>(&part_list, &options);
+    let matcher = generate_matcher::<R>(&part_list, &options, flags);
     Ok(Component {
       pattern_string,
       regexp,
@@ -101,11 +103,13 @@ fn generate_regular_expression_and_name_list(
       if part.modifier == PartModifier::None {
         result.push_str(&options.escape_regexp_string(&part.value));
       } else {
-        result.push_str(&format!(
+        write!(
+          result,
           "(?:{}){}",
           options.escape_regexp_string(&part.value),
           part.modifier
-        ));
+        )
+        .unwrap();
       }
       continue;
     }
@@ -122,24 +126,27 @@ fn generate_regular_expression_and_name_list(
 
     if part.prefix.is_empty() && part.suffix.is_empty() {
       if matches!(part.modifier, PartModifier::None | PartModifier::Optional) {
-        result.push_str(&format!("({}){}", regexp_value, part.modifier));
+        write!(result, "({}){}", regexp_value, part.modifier).unwrap();
       } else {
-        result.push_str(&format!("((?:{}){})", regexp_value, part.modifier));
+        write!(result, "((?:{}){})", regexp_value, part.modifier).unwrap();
       }
       continue;
     }
     if matches!(part.modifier, PartModifier::None | PartModifier::Optional) {
-      result.push_str(&format!(
+      write!(
+        result,
         "(?:{}({}){}){}",
         options.escape_regexp_string(&part.prefix),
         regexp_value,
         options.escape_regexp_string(&part.suffix),
         part.modifier
-      ));
+      )
+      .unwrap();
       continue;
     }
     assert!(!part.prefix.is_empty() || !part.suffix.is_empty());
-    result.push_str(&format!(
+    write!(
+      result,
       "(?:{}((?:{})(?:{}{}(?:{}))*){}){}",
       options.escape_regexp_string(&part.prefix),
       regexp_value,
@@ -152,7 +159,8 @@ fn generate_regular_expression_and_name_list(
       } else {
         ""
       }
-    ));
+    )
+    .unwrap();
   }
   result.push('$');
   (result, name_list)
@@ -173,11 +181,13 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
         result.push_str(&escape_pattern_string(&part.value));
         continue;
       }
-      result.push_str(&format!(
+      write!(
+        result,
         "{{{}}}{}",
         escape_pattern_string(&part.value),
         part.modifier
-      ));
+      )
+      .unwrap();
       continue;
     }
     let custom_name = !part.name.chars().next().unwrap().is_ascii_digit();
@@ -224,9 +234,11 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
     }
     match part.kind {
       PartType::FixedText => unreachable!(),
-      PartType::Regexp => result.push_str(&format!("({})", part.value)),
-      PartType::SegmentWildcard if !custom_name => result
-        .push_str(&format!("({})", options.generate_segment_wildcard_regexp())),
+      PartType::Regexp => write!(result, "({})", part.value).unwrap(),
+      PartType::SegmentWildcard if !custom_name => {
+        write!(result, "({})", options.generate_segment_wildcard_regexp())
+          .unwrap()
+      }
       PartType::SegmentWildcard => {}
       PartType::FullWildcard => {
         if !custom_name
@@ -238,7 +250,7 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
         {
           result.push('*');
         } else {
-          result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
+          write!(result, "({})", FULL_WILDCARD_REGEXP_VALUE).unwrap();
         }
       }
     }
@@ -275,6 +287,7 @@ fn escape_pattern_string(input: &str) -> String {
 fn generate_matcher<R: RegExp>(
   mut part_list: &[&Part],
   options: &Options,
+  flags: &str,
 ) -> Matcher<R> {
   fn is_literal(part: &Part) -> bool {
     part.kind == PartType::FixedText && part.modifier == PartModifier::None
@@ -343,7 +356,7 @@ fn generate_matcher<R: RegExp>(
     part_list => {
       let (regexp_string, _) =
         generate_regular_expression_and_name_list(part_list, options);
-      let regexp = R::parse(&regexp_string).map_err(Error::RegExp);
+      let regexp = R::parse(&regexp_string, flags).map_err(Error::RegExp);
       InnerMatcher::RegExp { regexp }
     }
   };
