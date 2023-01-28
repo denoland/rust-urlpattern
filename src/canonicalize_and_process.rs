@@ -13,7 +13,7 @@ pub fn canonicalize_protocol(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
-  url::Url::parse(&format!("{}://dummy.test", value))
+  url::Url::parse(&format!("{value}://dummy.test"))
     .map(|url| url.scheme().to_owned())
     .map_err(Error::Url)
 }
@@ -92,7 +92,7 @@ pub fn canonicalize_pathname(value: &str) -> Result<String, Error> {
   }
   let leading_slash = value.starts_with('/');
   let modified_value = if !leading_slash {
-    format!("/-{}", value)
+    format!("/-{value}")
   } else {
     value.to_string()
   };
