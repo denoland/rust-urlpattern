@@ -2,21 +2,21 @@ use derive_more::Display;
 
 use crate::tokenizer::TokenType;
 
-/// A error occuring during URL pattern construction, or matching.
+/// A error occurring during URL pattern construction, or matching.
 #[derive(Display)]
 pub enum Error {
   #[display(fmt = "a relative input without a base URL is not valid")]
   BaseUrlRequired,
 
   #[display(
-    fmt = "specifying both an init object, and a seperate base URL is not valid"
+    fmt = "specifying both an init object, and a separate base URL is not valid"
   )]
   BaseUrlWithInit,
 
-  #[display(fmt = "tokenizer error: {} (at char {})", _0, _1)]
+  #[display(fmt = "tokenizer error: {_0} (at char {_1})")]
   Tokenizer(TokenizerError, usize),
 
-  #[display(fmt = "parser error: {}", _0)]
+  #[display(fmt = "parser error: {_0}")]
   Parser(ParserError),
 
   Url(url::ParseError),
@@ -39,15 +39,15 @@ pub enum TokenizerError {
   IncompleteEscapeCode,
   #[display(fmt = "invalid name; must be at least length 1")]
   InvalidName,
-  #[display(fmt = "invalid regex: {}", _0)]
+  #[display(fmt = "invalid regex: {_0}")]
   InvalidRegex(&'static str),
 }
 
 #[derive(Debug, Display)]
 pub enum ParserError {
-  #[display(fmt = "expected token {}, found '{}' of type {}", _0, _2, _1)]
+  #[display(fmt = "expected token {_0}, found '{_2}' of type {_1}")]
   ExpectedToken(TokenType, TokenType, String),
 
-  #[display(fmt = "pattern contains duplicate name {}", _0)]
+  #[display(fmt = "pattern contains duplicate name {_0}")]
   DuplicateName(String),
 }
