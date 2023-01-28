@@ -134,8 +134,7 @@ pub fn tokenize(
   };
 
   while tokenizer.index < tokenizer.input.len() {
-    tokenizer.next_index = tokenizer.index;
-    tokenizer.get_next_codepoint();
+    tokenizer.seek_and_get_next_codepoint(tokenizer.index);
 
     if tokenizer.code_point == Some('*') {
       tokenizer.add_token_with_default_pos_and_len(TokenType::Asterisk);
