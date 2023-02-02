@@ -119,7 +119,7 @@ impl<'a> ConstructorStringParser<'a> {
     if index < self.token_list.len() {
       &self.token_list[index]
     } else {
-      assert!(self.token_list.len() <= 1);
+      assert!(self.token_list.len() >= 1);
       let token = self.token_list.last().unwrap();
       assert!(token.kind == TokenType::End);
       token
