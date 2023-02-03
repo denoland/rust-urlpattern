@@ -37,4 +37,4 @@ fn main() {
 We appreciate your help!
 
 The code of conduct from the Deno repository applies here too:
-https://github.com/denoland/deno/blob/main/CODE_OF_CONDUCT.md.
+https://github.com/denoland/deno/blob/main/.github/CODE_OF_CONDUCT.md.
