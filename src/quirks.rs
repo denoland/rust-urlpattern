@@ -127,7 +127,7 @@ pub enum InnerMatcher {
   },
   #[serde(rename_all = "camelCase")]
   SingleCapture {
-    filter: Option<String>,
+    filter: Option<char>,
     allow_empty: bool,
   },
   RegExp {
