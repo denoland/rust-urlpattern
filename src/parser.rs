@@ -24,7 +24,7 @@ pub enum RegexSyntax {
 // Ref: https://wicg.github.io/urlpattern/#options-header
 #[derive(Debug, Clone)]
 pub struct Options {
-  pub delimiter_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
+  pub delimiter_code_point: Option<char>,
   pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
   regex_syntax: RegexSyntax,
 }
@@ -34,7 +34,7 @@ impl std::default::Default for Options {
   #[inline]
   fn default() -> Self {
     Options {
-      delimiter_code_point: String::new(),
+      delimiter_code_point: None,
       prefix_code_point: String::new(),
       regex_syntax: RegexSyntax::Rust,
     }
@@ -46,7 +46,7 @@ impl Options {
   #[inline]
   pub fn hostname() -> Self {
     Options {
-      delimiter_code_point: String::from("."),
+      delimiter_code_point: Some('.'),
       prefix_code_point: String::new(),
       regex_syntax: RegexSyntax::Rust,
     }
@@ -56,7 +56,7 @@ impl Options {
   #[inline]
   pub fn pathname() -> Self {
     Options {
-      delimiter_code_point: String::from("/"),
+      delimiter_code_point: Some('/'),
       prefix_code_point: String::from("/"),
       regex_syntax: RegexSyntax::Rust,
     }
@@ -99,13 +99,14 @@ impl Options {
     // NOTE: this is a deliberate deviation from the spec. In rust-regex, you
     // can not have a negative character class without specifying any
     // characters.
-    if self.delimiter_code_point.is_empty() {
-      ".+?".to_owned()
-    } else {
+    if let Some(code_point) = self.delimiter_code_point {
+      let mut buffer = [0; 4];
       format!(
         "[^{}]+?",
-        self.escape_regexp_string(&self.delimiter_code_point)
+        self.escape_regexp_string(code_point.encode_utf8(&mut buffer))
       )
+    } else {
+      ".+?".to_owned()
     }
   }
 }
