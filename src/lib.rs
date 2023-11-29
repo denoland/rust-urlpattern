@@ -592,7 +592,7 @@ mod tests {
     );
 
     if let Some(reason) = case.skip {
-      println!("🟠 Skipping: {}", reason);
+      println!("🟠 Skipping: {reason}");
       return;
     }
 

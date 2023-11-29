@@ -238,7 +238,7 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
         {
           result.push('*');
         } else {
-          result.push_str(&format!("({})", FULL_WILDCARD_REGEXP_VALUE));
+          result.push_str(&format!("({FULL_WILDCARD_REGEXP_VALUE})"));
         }
       }
     }
