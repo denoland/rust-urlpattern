@@ -20,6 +20,7 @@ use url::Url;
 
 use crate::canonicalize_and_process::is_special_scheme;
 use crate::canonicalize_and_process::special_scheme_default_port;
+use crate::canonicalize_and_process::ProcessType;
 use crate::component::Component;
 use crate::regexp::RegExp;
 
@@ -55,7 +56,7 @@ impl UrlPatternInit {
   #[allow(clippy::too_many_arguments)]
   fn process(
     &self,
-    kind: canonicalize_and_process::ProcessType,
+    kind: ProcessType,
     protocol: Option<String>,
     username: Option<String>,
     password: Option<String>,
@@ -78,18 +79,70 @@ impl UrlPatternInit {
     };
 
     let base_url = if let Some(parsed_base_url) = &self.base_url {
-      // TODO: check if these are correct
-      result.protocol = Some(parsed_base_url.scheme().to_string());
-      result.username = Some(parsed_base_url.username().to_string());
-      result.password =
-        Some(parsed_base_url.password().unwrap_or_default().to_string());
-      result.hostname =
-        Some(parsed_base_url.host_str().unwrap_or_default().to_string());
-      result.port = Some(url::quirks::port(parsed_base_url).to_string());
-      result.pathname =
-        Some(url::quirks::pathname(parsed_base_url).to_string());
-      result.search = Some(parsed_base_url.query().unwrap_or("").to_string());
-      result.hash = Some(parsed_base_url.fragment().unwrap_or("").to_string());
+      if self.protocol.is_none() {
+        result.protocol = Some(parsed_base_url.scheme().to_string());
+      }
+
+      if kind != ProcessType::Pattern
+        && (self.protocol.is_none()
+          && self.hostname.is_none()
+          && self.port.is_none()
+          && self.username.is_none())
+      {
+        result.username = Some(parsed_base_url.username().to_string());
+      }
+
+      if kind != ProcessType::Pattern
+        && (self.protocol.is_none()
+          && self.hostname.is_none()
+          && self.port.is_none()
+          && self.username.is_none()
+          && self.password.is_none())
+      {
+        result.password =
+          Some(parsed_base_url.password().unwrap_or_default().to_string());
+      }
+
+      if self.protocol.is_none() && self.hostname.is_none() {
+        result.hostname =
+          Some(parsed_base_url.host_str().unwrap_or_default().to_string());
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+      {
+        result.port = Some(url::quirks::port(parsed_base_url).to_string());
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+        && self.pathname.is_none()
+      {
+        result.pathname =
+          Some(url::quirks::pathname(parsed_base_url).to_string());
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+        && self.pathname.is_none()
+        && self.search.is_none()
+      {
+        result.search = Some(parsed_base_url.query().unwrap_or("").to_string());
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+        && self.pathname.is_none()
+        && self.search.is_none()
+        && self.hash.is_none()
+      {
+        result.hash =
+          Some(parsed_base_url.fragment().unwrap_or("").to_string());
+      }
 
       Some(parsed_base_url)
     } else {
