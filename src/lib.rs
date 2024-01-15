@@ -833,4 +833,12 @@ mod tests {
     })
     .unwrap();
   }
+
+  #[test]
+  fn issue46() {
+    quirks::process_construct_pattern_input(
+      quirks::StringOrInit::String(":café://:foo".to_owned()),
+      None,
+    ).unwrap();
+  }
 }
