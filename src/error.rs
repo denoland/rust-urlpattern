@@ -53,6 +53,8 @@ impl fmt::Display for TokenizerError {
   }
 }
 
+impl std::error::Error for TokenizerError {}
+
 #[derive(Debug)]
 pub enum ParserError {
   ExpectedToken(TokenType, TokenType, String),
@@ -74,3 +76,5 @@ impl fmt::Display for ParserError {
     }
   }
 }
+
+impl std::error::Error for ParserError {}
