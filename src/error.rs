@@ -3,6 +3,7 @@ use std::fmt;
 use crate::tokenizer::TokenType;
 
 /// A error occurring during URL pattern construction, or matching.
+#[derive(Debug)]
 pub enum Error {
   BaseUrlRequired,
   BaseUrlWithInit,
@@ -32,12 +33,6 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
-
-impl std::fmt::Debug for Error {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    std::fmt::Display::fmt(self, f)
-  }
-}
 
 #[derive(Debug)]
 pub enum TokenizerError {
