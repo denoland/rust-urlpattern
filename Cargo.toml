@@ -8,7 +8,6 @@ repository = "https://github.com/denoland/rust-urlpattern"
 license = "MIT"
 
 [dependencies]
-derive_more = "0.99.16"
 url = "2.2.2"
 regex = "1.4.3"
 serde = { version = "1.0.127", features = ["derive"] }
