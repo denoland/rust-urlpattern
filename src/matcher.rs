@@ -49,7 +49,10 @@ impl<R: RegExp> Matcher<R> {
     }
   }
 
-  pub fn matches<'a>(&self, mut input: &'a str) -> Option<Vec<&'a str>> {
+  pub fn matches<'a>(
+    &self,
+    mut input: &'a str,
+  ) -> Option<Vec<Option<&'a str>>> {
     let prefix_len = self.prefix.len();
     let suffix_len = self.suffix.len();
     let input_len = input.len();
@@ -82,7 +85,7 @@ impl<R: RegExp> Matcher<R> {
             return None;
           }
         }
-        Some(vec![input])
+        Some(vec![Some(input)])
       }
       InnerMatcher::RegExp { regexp, .. } => {
         regexp.as_ref().unwrap().matches(input)
