@@ -578,7 +578,7 @@ mod tests {
   }
 
   fn test_case(case: TestCase) {
-    let input = case.pattern.get(0).cloned();
+    let input = case.pattern.first().cloned();
     let mut base_url = case.pattern.get(1).map(|input| match input {
       StringOrInit::String(str) => str.clone(),
       StringOrInit::Init(_) => unreachable!(),
@@ -689,7 +689,7 @@ mod tests {
     assert_field!(search);
     assert_field!(hash);
 
-    let input = case.inputs.get(0).cloned();
+    let input = case.inputs.first().cloned();
     let base_url = case.inputs.get(1).map(|input| match input {
       StringOrInit::String(str) => str.clone(),
       StringOrInit::Init(_) => unreachable!(),
