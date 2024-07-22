@@ -251,7 +251,7 @@ pub(crate) fn parse_constructor_string<R: RegExp>(
       hostname: None,
       port: None,
       pathname: None,
-      search: None,
+      search: Some("*".into()),
       hash: None,
       base_url: None,
     },
@@ -276,7 +276,7 @@ pub(crate) fn parse_constructor_string<R: RegExp>(
           parser.result.hash = Some(String::new());
         } else {
           parser.change_state(ConstructorStringParserState::Pathname, 0);
-          parser.result.search = Some(String::new());
+          parser.result.search = Some("*".into());
           parser.result.hash = Some(String::new());
         }
         parser.token_index += parser.token_increment;
@@ -311,7 +311,7 @@ pub(crate) fn parse_constructor_string<R: RegExp>(
           parser.result.hostname = Some(String::new());
           parser.result.port = Some(String::new());
           parser.result.pathname = Some(String::new());
-          parser.result.search = Some(String::new());
+          parser.result.search = Some("*".into());
           parser.result.hash = Some(String::new());
           parser.rewind_and_set_state(ConstructorStringParserState::Protocol);
         }
