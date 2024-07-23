@@ -185,7 +185,7 @@ impl RegExp for EcmaRegexp {
 /// Parse a pattern into its components.
 pub fn parse_pattern(init: crate::UrlPatternInit) -> Result<UrlPattern, Error> {
   let pattern = crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false)?;
-  let urlpattern = UrlPattern {
+  let mut urlpattern = UrlPattern {
     protocol: pattern.protocol.into(),
     username: pattern.username.into(),
     password: pattern.password.into(),
@@ -195,6 +195,11 @@ pub fn parse_pattern(init: crate::UrlPatternInit) -> Result<UrlPattern, Error> {
     search: pattern.search.into(),
     hash: pattern.hash.into(),
   };
+  if urlpattern.search.pattern_string.is_empty()
+    && urlpattern.search.regexp_string.eq("^$")
+  {
+    urlpattern.search.regexp_string = "^(.*)$".into();
+  }
   Ok(urlpattern)
 }
 
