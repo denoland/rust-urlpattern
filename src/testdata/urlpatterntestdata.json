@@ -2425,7 +2425,6 @@
     "expected_obj": "error"
   },
   {
-    "skip": "bug in rust-url: https://github.com/servo/rust-url/pull/718",
     "pattern": [{ "hostname": "bad|hostname" }],
     "expected_obj": "error"
   },
@@ -2627,6 +2626,7 @@
     }
   },
   {
+    "skip": "only works in ecmascript variety of regex",
     "pattern": [{ "pathname": "*{}**?" }],
     "inputs": [{ "pathname": "foobar" }],
     "expected_obj": {

@@ -202,7 +202,7 @@ fn is_absolute_pathname(
 /// // Match the pattern against a URL.
 /// let url = "https://example.com/users/123".parse().unwrap();
 /// let result = pattern.exec(UrlPatternMatchInput::Url(url)).unwrap().unwrap();
-/// assert_eq!(result.pathname.groups.get("id").unwrap(), "123");
+/// assert_eq!(result.pathname.groups.get("id").unwrap().as_ref().unwrap(), "123");
 ///# }
 /// ```
 #[derive(Debug)]
