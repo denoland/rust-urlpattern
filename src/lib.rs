@@ -378,6 +378,18 @@ impl<R: RegExp> UrlPattern<R> {
     &self.hash.pattern_string
   }
 
+  /// Returns whether the URLPattern contains one or more groups which uses regular expression matching.
+  pub fn has_regexp_groups(&self) -> bool {
+    self.protocol.has_regexp_group
+      || self.username.has_regexp_group
+      || self.password.has_regexp_group
+      || self.hostname.has_regexp_group
+      || self.port.has_regexp_group
+      || self.pathname.has_regexp_group
+      || self.search.has_regexp_group
+      || self.hash.has_regexp_group
+  }
+
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-test
   /// Test if a given [UrlPatternInput] (with optional base url), matches the
   /// pattern.
@@ -832,5 +844,22 @@ mod tests {
       ..Default::default()
     })
     .unwrap();
+  }
+
+  #[test]
+  fn has_regexp_group() {
+    let pattern = <UrlPattern>::parse(UrlPatternInit {
+      pathname: Some("/:foo.".to_owned()),
+      ..Default::default()
+    })
+    .unwrap();
+    assert!(!pattern.has_regexp_groups());
+
+    let pattern = <UrlPattern>::parse(UrlPatternInit {
+      pathname: Some("/(.*?)".to_owned()),
+      ..Default::default()
+    })
+    .unwrap();
+    assert!(pattern.has_regexp_groups());
   }
 }
