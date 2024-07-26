@@ -16,16 +16,20 @@ mod regexp;
 mod tokenizer;
 
 pub use error::Error;
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
+use crate::canonicalize_and_process::is_special_scheme;
+use crate::canonicalize_and_process::process_base_url;
 use crate::canonicalize_and_process::special_scheme_default_port;
 use crate::canonicalize_and_process::ProcessType;
-use crate::canonicalize_and_process::{is_special_scheme, process_base_url};
 use crate::component::Component;
 use crate::regexp::RegExp;
 
 /// Options to create a URL pattern.
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UrlPatternOptions {
   ignore_case: bool,
 }
@@ -602,17 +606,18 @@ mod tests {
   use std::collections::HashMap;
 
   use serde::Deserialize;
+  use serde::Serialize;
   use url::Url;
 
-  use crate::quirks;
   use crate::quirks::StringOrInit;
-  use crate::UrlPatternComponentResult;
   use crate::UrlPatternResult;
+  use crate::{quirks, UrlPatternOptions};
+  use crate::{UrlPatternComponentResult, UrlPatternMatchInput};
 
   use super::UrlPattern;
   use super::UrlPatternInit;
 
-  #[derive(Deserialize)]
+  #[derive(Debug, Deserialize)]
   #[serde(untagged)]
   #[allow(clippy::large_enum_variant)]
   enum ExpectedMatch {
@@ -626,10 +631,18 @@ mod tests {
     groups: HashMap<String, Option<String>>,
   }
 
-  #[derive(Deserialize)]
+  #[allow(clippy::large_enum_variant)]
+  #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+  #[serde(untagged)]
+  pub enum StringOrInitOrOptions {
+    Options(UrlPatternOptions),
+    StringOrInit(quirks::StringOrInit),
+  }
+
+  #[derive(Debug, Deserialize)]
   struct TestCase {
     skip: Option<String>,
-    pattern: Vec<quirks::StringOrInit>,
+    pattern: Vec<StringOrInitOrOptions>,
     #[serde(default)]
     inputs: Vec<quirks::StringOrInit>,
     expected_obj: Option<quirks::StringOrInit>,
@@ -676,11 +689,27 @@ mod tests {
   }
 
   fn test_case(case: TestCase) {
-    let input = case.pattern.first().cloned();
-    let mut base_url = case.pattern.get(1).and_then(|input| match input {
-      StringOrInit::String(str) => Some(str.clone()),
-      StringOrInit::Init(_) => None,
-    });
+    let mut input = quirks::StringOrInit::Init(Default::default());
+    let mut base_url = None;
+    let mut options = None;
+
+    for (i, pattern_input) in case.pattern.into_iter().enumerate() {
+      match pattern_input {
+        StringOrInitOrOptions::StringOrInit(str_or_init) => {
+          if i == 0 {
+            input = str_or_init;
+          } else {
+            base_url = match str_or_init {
+              StringOrInit::String(str) => Some(str.clone()),
+              StringOrInit::Init(_) => None,
+            };
+          }
+        }
+        StringOrInitOrOptions::Options(opts) => {
+          options = Some(opts);
+        }
+      }
+    }
 
     println!("\n=====");
     println!(
@@ -688,13 +717,14 @@ mod tests {
       serde_json::to_string(&input).unwrap(),
       serde_json::to_string(&base_url).unwrap()
     );
+    if let Some(options) = &options {
+      println!("Options: {}", serde_json::to_string(&options).unwrap(),);
+    }
 
     if let Some(reason) = case.skip {
       println!("🟠 Skipping: {reason}");
       return;
     }
-
-    let input = input.unwrap_or_else(|| StringOrInit::Init(Default::default()));
 
     let init_res = quirks::process_construct_pattern_input(
       input.clone(),
@@ -702,8 +732,8 @@ mod tests {
     );
 
     let res = init_res.and_then(|init_res| {
-      UrlPattern::<Regex>::parse(init_res, Default::default())
-    }); // TODO: once tests are available set flag accordingly
+      UrlPattern::<Regex>::parse(init_res, options.unwrap_or_default())
+    });
     let expected_obj = match case.expected_obj {
       Some(StringOrInit::String(s)) if s == "error" => {
         assert!(res.is_err());
@@ -891,8 +921,8 @@ mod tests {
     let actual_match = exec_res.unwrap();
 
     assert_eq!(
-      test,
       expected_match.is_some(),
+      test,
       "pattern.test result is not correct"
     );
 
@@ -989,17 +1019,23 @@ mod tests {
 
   #[test]
   fn has_regexp_group() {
-    let pattern = <UrlPattern>::parse(UrlPatternInit {
-      pathname: Some("/:foo.".to_owned()),
-      ..Default::default()
-    })
+    let pattern = <UrlPattern>::parse(
+      UrlPatternInit {
+        pathname: Some("/:foo.".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
     .unwrap();
     assert!(!pattern.has_regexp_groups());
 
-    let pattern = <UrlPattern>::parse(UrlPatternInit {
-      pathname: Some("/(.*?)".to_owned()),
-      ..Default::default()
-    })
+    let pattern = <UrlPattern>::parse(
+      UrlPatternInit {
+        pathname: Some("/(.*?)".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
     .unwrap();
     assert!(pattern.has_regexp_groups());
   }

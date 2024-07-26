@@ -1467,7 +1467,6 @@
     }
   },
   {
-    "skip": "https://github.com/denoland/rust-urlpattern/issues/12",
     "pattern": [{ "pathname": "/foo/bar" }],
     "inputs": [ "./foo/bar", "https://example.com" ],
     "expected_match": {
@@ -2725,7 +2724,6 @@
     }
   },
   {
-    "skip": "ingoreCase is not yet implemented",
     "pattern": [{ "pathname": "/foo/bar" }, { "ignoreCase": true }],
     "inputs": [{ "pathname": "/FOO/BAR" }],
     "expected_match": {
@@ -2733,7 +2731,6 @@
     }
   },
   {
-    "skip": "ingoreCase is not yet implemented",
     "pattern": [{ "ignoreCase": true }],
     "inputs": [{ "pathname": "/FOO/BAR" }],
     "expected_match": {
@@ -2741,7 +2738,6 @@
     }
   },
   {
-    "skip": "ingoreCase is not yet implemented",
     "pattern": [ "https://example.com:8080/foo?bar#baz",
       { "ignoreCase": true }],
     "inputs": [{ "pathname": "/FOO", "search": "BAR", "hash": "BAZ",
@@ -2764,7 +2760,6 @@
     }
   },
   {
-    "skip": "ingoreCase is not yet implemented",
     "pattern": [ "/foo?bar#baz", "https://example.com:8080",
       { "ignoreCase": true }],
     "inputs": [{ "pathname": "/FOO", "search": "BAR", "hash": "BAZ",
@@ -2787,7 +2782,6 @@
     }
   },
   {
-    "skip": "ingoreCase is not yet implemented",
     "pattern": [ "/foo?bar#baz", { "ignoreCase": true },
       "https://example.com:8080" ],
     "inputs": [{ "pathname": "/FOO", "search": "BAR", "hash": "BAZ",

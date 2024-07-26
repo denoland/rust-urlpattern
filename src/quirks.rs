@@ -215,10 +215,10 @@ pub fn process_match_input(
   let mut inputs = (input.clone(), None);
   let init = match input {
     StringOrInit::String(url) => {
-      let base_url = if let Some(base_url) = base_url_str {
-        match Url::parse(base_url) {
+      let base_url = if let Some(base_url_str) = base_url_str {
+        match Url::parse(base_url_str) {
           Ok(base_url) => {
-            inputs.1 = Some(base_url.to_string());
+            inputs.1 = Some(base_url_str.to_string());
             Some(base_url)
           }
           Err(_) => return Ok(None),
