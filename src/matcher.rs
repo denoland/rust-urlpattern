@@ -29,7 +29,7 @@ pub(crate) enum InnerMatcher<R: RegExp> {
   /// - /blog/:id
   /// - /blog/:id.html
   SingleCapture {
-    filter: Option<String>,
+    filter: Option<char>,
     allow_empty: bool,
   },
   /// A regexp matcher. This is a bail-out matcher for arbitrary complexity
@@ -81,7 +81,7 @@ impl<R: RegExp> Matcher<R> {
           return None;
         }
         if let Some(filter) = filter {
-          if input.contains(filter) {
+          if input.contains(*filter) {
             return None;
           }
         }

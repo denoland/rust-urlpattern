@@ -321,13 +321,8 @@ fn generate_matcher<R: RegExp>(
       if !part.suffix.is_empty() {
         suffix = format!("{}{suffix}", part.suffix);
       }
-      let filter = if options.delimiter_code_point.is_empty() {
-        None
-      } else {
-        Some(options.delimiter_code_point.clone())
-      };
       InnerMatcher::SingleCapture {
-        filter,
+        filter: options.delimiter_code_point,
         allow_empty: false,
       }
     }
