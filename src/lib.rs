@@ -202,7 +202,7 @@ fn is_absolute_pathname(
 /// // Match the pattern against a URL.
 /// let url = "https://example.com/users/123".parse().unwrap();
 /// let result = pattern.exec(UrlPatternMatchInput::Url(url)).unwrap().unwrap();
-/// assert_eq!(result.pathname.groups.get("id").unwrap(), "123");
+/// assert_eq!(result.pathname.groups.get("id").unwrap().as_ref().unwrap(), "123");
 ///# }
 /// ```
 #[derive(Debug)]
@@ -508,7 +508,7 @@ pub struct UrlPatternComponentResult {
   /// The matched input for this component.
   pub input: String,
   /// The values for all named groups in the pattern.
-  pub groups: std::collections::HashMap<String, String>,
+  pub groups: std::collections::HashMap<String, Option<String>>,
 }
 
 #[cfg(test)]
@@ -537,7 +537,7 @@ mod tests {
   #[derive(Debug, Deserialize)]
   struct ComponentResult {
     input: String,
-    groups: HashMap<String, String>,
+    groups: HashMap<String, Option<String>>,
   }
 
   #[derive(Deserialize)]
@@ -590,7 +590,7 @@ mod tests {
   }
 
   fn test_case(case: TestCase) {
-    let input = case.pattern.get(0).cloned();
+    let input = case.pattern.first().cloned();
     let mut base_url = case.pattern.get(1).map(|input| match input {
       StringOrInit::String(str) => str.clone(),
       StringOrInit::Init(_) => unreachable!(),
@@ -701,7 +701,7 @@ mod tests {
     assert_field!(search);
     assert_field!(hash);
 
-    let input = case.inputs.get(0).cloned();
+    let input = case.inputs.first().cloned();
     let base_url = case.inputs.get(1).map(|input| match input {
       StringOrInit::String(str) => str.clone(),
       StringOrInit::Init(_) => unreachable!(),
@@ -799,7 +799,7 @@ mod tests {
             if !exactly_empty_components
               .contains(&stringify!($component).to_owned())
             {
-              groups.insert("0".to_owned(), "".to_owned());
+              groups.insert("0".to_owned(), Some("".to_owned()));
             }
             UrlPatternComponentResult {
               input: "".to_owned(),

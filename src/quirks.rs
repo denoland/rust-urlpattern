@@ -178,7 +178,7 @@ impl RegExp for EcmaRegexp {
     Ok(EcmaRegexp(pattern.to_string()))
   }
 
-  fn matches<'a>(&self, text: &'a str) -> Option<Vec<&'a str>> {
+  fn matches<'a>(&self, text: &'a str) -> Option<Vec<Option<&'a str>>> {
     let regexp = regex::Regex::parse(&self.0).ok()?;
     regexp.matches(text)
   }
