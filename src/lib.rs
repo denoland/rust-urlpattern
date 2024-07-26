@@ -955,6 +955,15 @@ mod tests {
   }
 
   #[test]
+  fn issue46() {
+    quirks::process_construct_pattern_input(
+      quirks::StringOrInit::String(":café://:foo".to_owned()),
+      None,
+    )
+    .unwrap();
+  }
+
+  #[test]
   fn has_regexp_group() {
     let pattern = <UrlPattern>::parse(UrlPatternInit {
       pathname: Some("/:foo.".to_owned()),

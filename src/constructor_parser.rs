@@ -230,11 +230,13 @@ impl<'a> ConstructorStringParser<'a> {
     assert!(self.token_index < self.token_list.len());
     let token = &self.token_list[self.token_index];
     let component_start_index = self.get_safe_token(self.component_start).index;
+
     self
       .input
-      .get(component_start_index..token.index) // TODO: check & codepoint
-      .unwrap()
-      .to_string()
+      .chars()
+      .skip(component_start_index)
+      .take(token.index - component_start_index)
+      .collect()
   }
 
   // Ref: https://wicg.github.io/urlpattern/#rewind-and-set-state
