@@ -127,7 +127,11 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#change-state
-  fn change_state(&mut self, state: ConstructorStringParserState, skip: usize) {
+  fn change_state(
+    &mut self,
+    new_state: ConstructorStringParserState,
+    skip: usize,
+  ) {
     match self.state {
       ConstructorStringParserState::Protocol => {
         self.result.protocol = Some(self.make_component_string())
@@ -159,7 +163,7 @@ impl<'a> ConstructorStringParser<'a> {
     }
 
     if self.state != ConstructorStringParserState::Init
-      && state != ConstructorStringParserState::Done
+      && new_state != ConstructorStringParserState::Done
     {
       if matches!(
         self.state,
@@ -168,7 +172,7 @@ impl<'a> ConstructorStringParser<'a> {
           | ConstructorStringParserState::Username
           | ConstructorStringParserState::Password
       ) && matches!(
-        state,
+        new_state,
         ConstructorStringParserState::Port
           | ConstructorStringParserState::Pathname
           | ConstructorStringParserState::Search
@@ -187,7 +191,7 @@ impl<'a> ConstructorStringParser<'a> {
           | ConstructorStringParserState::Hostname
           | ConstructorStringParserState::Port
       ) && matches!(
-        state,
+        new_state,
         ConstructorStringParserState::Search
           | ConstructorStringParserState::Hash
       ) && self.result.pathname.is_none()
@@ -208,16 +212,14 @@ impl<'a> ConstructorStringParser<'a> {
           | ConstructorStringParserState::Hostname
           | ConstructorStringParserState::Port
           | ConstructorStringParserState::Pathname
-      ) && matches!(
-        state,
-          | ConstructorStringParserState::Hash
-      ) && self.result.search.is_none()
+      ) && new_state == ConstructorStringParserState::Hash
+        && self.result.search.is_none()
       {
-        self.result.pathname = Some(String::new());
+        self.result.search = Some(String::new());
       }
     }
 
-    self.state = state;
+    self.state = new_state;
     self.token_index += skip;
     self.component_start = self.token_index;
     self.token_increment = 0;

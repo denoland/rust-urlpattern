@@ -1,5 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+use crate::canonicalize_and_process::escape_pattern_string;
 use crate::matcher::InnerMatcher;
 use crate::matcher::Matcher;
 use crate::parser::Options;
@@ -254,19 +255,6 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
       result.push('}');
     }
     result.push_str(&part.modifier.to_string());
-  }
-  result
-}
-
-// Ref: https://wicg.github.io/urlpattern/#escape-a-pattern-string
-fn escape_pattern_string(input: &str) -> String {
-  assert!(input.is_ascii());
-  let mut result = String::new();
-  for char in input.chars() {
-    if matches!(char, '+' | '*' | '?' | ':' | '{' | '}' | '(' | ')' | '\\') {
-      result.push('\\');
-    }
-    result.push(char);
   }
   result
 }
