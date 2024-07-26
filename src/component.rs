@@ -1,5 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+use crate::canonicalize_and_process::escape_pattern_string;
 use crate::matcher::InnerMatcher;
 use crate::matcher::Matcher;
 use crate::parser::Options;
@@ -19,6 +20,7 @@ pub(crate) struct Component<R: RegExp> {
   pub regexp: Result<R, Error>,
   pub group_name_list: Vec<String>,
   pub matcher: Matcher<R>,
+  pub has_regexp_group: bool,
 }
 
 impl<R: RegExp> Component<R> {
@@ -48,6 +50,9 @@ impl<R: RegExp> Component<R> {
       regexp,
       group_name_list: name_list,
       matcher,
+      has_regexp_group: part_list
+        .iter()
+        .any(|part| part.kind == PartType::Regexp),
     })
   }
 
@@ -69,13 +74,13 @@ impl<R: RegExp> Component<R> {
   pub(crate) fn create_match_result(
     &self,
     input: String,
-    exec_result: Vec<&str>,
+    exec_result: Vec<Option<&str>>,
   ) -> crate::UrlPatternComponentResult {
     let groups = self
       .group_name_list
       .clone()
       .into_iter()
-      .zip(exec_result.into_iter().map(str::to_owned))
+      .zip(exec_result.into_iter().map(|s| s.map(str::to_owned)))
       .collect();
     crate::UrlPatternComponentResult { input, groups }
   }
@@ -250,7 +255,7 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
         {
           result.push('*');
         } else {
-          write!(result, "({})", FULL_WILDCARD_REGEXP_VALUE).unwrap();
+          result.push_str(&format!("({FULL_WILDCARD_REGEXP_VALUE})"));
         }
       }
     }
@@ -266,19 +271,6 @@ fn generate_pattern_string(part_list: &[&Part], options: &Options) -> String {
       result.push('}');
     }
     result.push_str(&part.modifier.to_string());
-  }
-  result
-}
-
-// Ref: https://wicg.github.io/urlpattern/#escape-a-pattern-string
-fn escape_pattern_string(input: &str) -> String {
-  assert!(input.is_ascii());
-  let mut result = String::new();
-  for char in input.chars() {
-    if matches!(char, '+' | '*' | '?' | ':' | '{' | '}' | '(' | ')' | '\\') {
-      result.push('\\');
-    }
-    result.push(char);
   }
   result
 }
@@ -342,13 +334,8 @@ fn generate_matcher<R: RegExp>(
       if !part.suffix.is_empty() {
         suffix = format!("{}{suffix}", part.suffix);
       }
-      let filter = if options.delimiter_code_point.is_empty() {
-        None
-      } else {
-        Some(options.delimiter_code_point.clone())
-      };
       InnerMatcher::SingleCapture {
-        filter,
+        filter: options.delimiter_code_point,
         allow_empty: false,
       }
     }

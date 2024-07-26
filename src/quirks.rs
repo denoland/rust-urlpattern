@@ -80,6 +80,7 @@ pub fn process_construct_pattern_input(
   Ok(init)
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UrlPattern {
   pub protocol: UrlPatternComponent,
   pub username: UrlPatternComponent,
@@ -89,6 +90,7 @@ pub struct UrlPattern {
   pub pathname: UrlPatternComponent,
   pub search: UrlPatternComponent,
   pub hash: UrlPatternComponent,
+  pub has_regexp_groups: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -128,7 +130,7 @@ pub enum InnerMatcher {
   },
   #[serde(rename_all = "camelCase")]
   SingleCapture {
-    filter: Option<String>,
+    filter: Option<char>,
     allow_empty: bool,
   },
   RegExp {
@@ -177,7 +179,7 @@ impl RegExp for EcmaRegexp {
     Ok(EcmaRegexp(pattern.to_string(), flags.to_string()))
   }
 
-  fn matches<'a>(&self, text: &'a str) -> Option<Vec<&'a str>> {
+  fn matches<'a>(&self, text: &'a str) -> Option<Vec<Option<&'a str>>> {
     let regexp = regex::Regex::parse(&self.0, &self.1).ok()?;
     regexp.matches(text)
   }
@@ -191,6 +193,7 @@ pub fn parse_pattern(
   let pattern =
     crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false, options)?;
   let urlpattern = UrlPattern {
+    has_regexp_groups: pattern.has_regexp_groups(),
     protocol: pattern.protocol.into(),
     username: pattern.username.into(),
     password: pattern.password.into(),

@@ -119,7 +119,7 @@ impl<'a> ConstructorStringParser<'a> {
     if index < self.token_list.len() {
       &self.token_list[index]
     } else {
-      assert!(self.token_list.len() <= 1);
+      assert!(!self.token_list.is_empty());
       let token = self.token_list.last().unwrap();
       assert!(token.kind == TokenType::End);
       token
@@ -127,7 +127,11 @@ impl<'a> ConstructorStringParser<'a> {
   }
 
   // Ref: https://wicg.github.io/urlpattern/#change-state
-  fn change_state(&mut self, state: ConstructorStringParserState, skip: usize) {
+  fn change_state(
+    &mut self,
+    new_state: ConstructorStringParserState,
+    skip: usize,
+  ) {
     match self.state {
       ConstructorStringParserState::Protocol => {
         self.result.protocol = Some(self.make_component_string())
@@ -153,10 +157,69 @@ impl<'a> ConstructorStringParser<'a> {
       ConstructorStringParserState::Hash => {
         self.result.hash = Some(self.make_component_string())
       }
-      _ => {}
+      ConstructorStringParserState::Init
+      | ConstructorStringParserState::Authority
+      | ConstructorStringParserState::Done => {}
     }
 
-    self.state = state;
+    if self.state != ConstructorStringParserState::Init
+      && new_state != ConstructorStringParserState::Done
+    {
+      if matches!(
+        self.state,
+        ConstructorStringParserState::Protocol
+          | ConstructorStringParserState::Authority
+          | ConstructorStringParserState::Username
+          | ConstructorStringParserState::Password
+      ) && matches!(
+        new_state,
+        ConstructorStringParserState::Port
+          | ConstructorStringParserState::Pathname
+          | ConstructorStringParserState::Search
+          | ConstructorStringParserState::Hash
+      ) && self.result.hostname.is_none()
+      {
+        self.result.hostname = Some(String::new());
+      }
+
+      if matches!(
+        self.state,
+        ConstructorStringParserState::Protocol
+          | ConstructorStringParserState::Authority
+          | ConstructorStringParserState::Username
+          | ConstructorStringParserState::Password
+          | ConstructorStringParserState::Hostname
+          | ConstructorStringParserState::Port
+      ) && matches!(
+        new_state,
+        ConstructorStringParserState::Search
+          | ConstructorStringParserState::Hash
+      ) && self.result.pathname.is_none()
+      {
+        if self.protocol_matches_special_scheme {
+          self.result.pathname = Some(String::from("/"));
+        } else {
+          self.result.pathname = Some(String::new());
+        }
+      }
+
+      if matches!(
+        self.state,
+        ConstructorStringParserState::Protocol
+          | ConstructorStringParserState::Authority
+          | ConstructorStringParserState::Username
+          | ConstructorStringParserState::Password
+          | ConstructorStringParserState::Hostname
+          | ConstructorStringParserState::Port
+          | ConstructorStringParserState::Pathname
+      ) && new_state == ConstructorStringParserState::Hash
+        && self.result.search.is_none()
+      {
+        self.result.search = Some(String::new());
+      }
+    }
+
+    self.state = new_state;
     self.token_index += skip;
     self.component_start = self.token_index;
     self.token_increment = 0;
@@ -167,11 +230,13 @@ impl<'a> ConstructorStringParser<'a> {
     assert!(self.token_index < self.token_list.len());
     let token = &self.token_list[self.token_index];
     let component_start_index = self.get_safe_token(self.component_start).index;
+
     self
       .input
-      .get(component_start_index..token.index) // TODO: check & codepoint
-      .unwrap()
-      .to_string()
+      .chars()
+      .skip(component_start_index)
+      .take(token.index - component_start_index)
+      .collect()
   }
 
   // Ref: https://wicg.github.io/urlpattern/#rewind-and-set-state
@@ -273,11 +338,8 @@ pub(crate) fn parse_constructor_string<R: RegExp>(
           parser.change_state(ConstructorStringParserState::Hash, 1);
         } else if parser.is_search_prefix() {
           parser.change_state(ConstructorStringParserState::Search, 1);
-          parser.result.hash = Some(String::new());
         } else {
           parser.change_state(ConstructorStringParserState::Pathname, 0);
-          parser.result.search = Some(String::new());
-          parser.result.hash = Some(String::new());
         }
         parser.token_index += parser.token_increment;
         continue;
@@ -306,22 +368,12 @@ pub(crate) fn parse_constructor_string<R: RegExp>(
     match parser.state {
       ConstructorStringParserState::Init => {
         if parser.is_protocol_suffix() {
-          parser.result.username = Some(String::new());
-          parser.result.password = Some(String::new());
-          parser.result.hostname = Some(String::new());
-          parser.result.port = Some(String::new());
-          parser.result.pathname = Some(String::new());
-          parser.result.search = Some(String::new());
-          parser.result.hash = Some(String::new());
           parser.rewind_and_set_state(ConstructorStringParserState::Protocol);
         }
       }
       ConstructorStringParserState::Protocol => {
         if parser.is_protocol_suffix() {
           parser.compute_protocol_matches_special_scheme::<R>()?;
-          if parser.protocol_matches_special_scheme {
-            parser.result.pathname = Some(String::from("/"));
-          }
           let mut next_state = ConstructorStringParserState::Pathname;
           let mut skip = 1;
           if parser.next_is_authority_slashes() {
@@ -398,5 +450,10 @@ pub(crate) fn parse_constructor_string<R: RegExp>(
     }
     parser.token_index += parser.token_increment;
   }
+
+  if parser.result.hostname.is_some() && parser.result.port.is_none() {
+    parser.result.port = Some(String::new());
+  }
+
   Ok(parser.result)
 }

@@ -13,7 +13,7 @@ pub fn canonicalize_protocol(value: &str) -> Result<String, Error> {
   if value.is_empty() {
     return Ok(String::new());
   }
-  url::Url::parse(&format!("{}://dummy.test", value))
+  url::Url::parse(&format!("{value}://dummy.test"))
     .map(|url| url.scheme().to_owned())
     .map_err(Error::Url)
 }
@@ -92,7 +92,7 @@ pub fn canonicalize_pathname(value: &str) -> Result<String, Error> {
   }
   let leading_slash = value.starts_with('/');
   let modified_value = if !leading_slash {
-    format!("/-{}", value)
+    format!("/-{value}")
   } else {
     value.to_string()
   };
@@ -269,4 +269,26 @@ pub fn special_scheme_default_port(scheme: &str) -> Option<&'static str> {
     "file" => None,
     _ => None,
   }
+}
+
+// Ref: https://urlpattern.spec.whatwg.org/#process-a-base-url-string
+pub fn process_base_url(input: &str, kind: &ProcessType) -> String {
+  if kind != &ProcessType::Pattern {
+    input.to_string()
+  } else {
+    escape_pattern_string(input)
+  }
+}
+
+// Ref: https://wicg.github.io/urlpattern/#escape-a-pattern-string
+pub fn escape_pattern_string(input: &str) -> String {
+  assert!(input.is_ascii());
+  let mut result = String::new();
+  for char in input.chars() {
+    if matches!(char, '+' | '*' | '?' | ':' | '{' | '}' | '(' | ')' | '\\') {
+      result.push('\\');
+    }
+    result.push(char);
+  }
+  result
 }

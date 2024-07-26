@@ -1,7 +1,5 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
-use derive_more::Display;
-
 use crate::error::TokenizerError;
 use crate::Error;
 
@@ -9,7 +7,7 @@ use crate::Error;
 // Ref: https://wicg.github.io/urlpattern/#tokenizing
 
 // Ref: https://wicg.github.io/urlpattern/#token-type
-#[derive(Debug, Display, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TokenType {
   Open,
   Close,
@@ -134,8 +132,7 @@ pub fn tokenize(
   };
 
   while tokenizer.index < tokenizer.input.len() {
-    tokenizer.next_index = tokenizer.index;
-    tokenizer.get_next_codepoint();
+    tokenizer.seek_and_get_next_codepoint(tokenizer.index);
 
     if tokenizer.code_point == Some('*') {
       tokenizer.add_token_with_default_pos_and_len(TokenType::Asterisk);

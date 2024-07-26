@@ -11,10 +11,10 @@ pub trait RegExp: Sized {
   /// of captures. The matches are returned in the order they appear in the
   /// regular expression. It is **not** prefixed with the full match. For groups
   /// that occur in the regular expression, but did not match, the corresponding
-  /// capture should be the empty string ("").
+  /// capture should be `None`.
   ///
   /// Returns `None` if the text does not match the regular expression.
-  fn matches<'a>(&self, text: &'a str) -> Option<Vec<&'a str>>;
+  fn matches<'a>(&self, text: &'a str) -> Option<Vec<Option<&'a str>>>;
 }
 
 impl RegExp for regex::Regex {
@@ -26,13 +26,13 @@ impl RegExp for regex::Regex {
     regex::Regex::new(&format!("(?{flags}){pattern}")).map_err(|_| ())
   }
 
-  fn matches<'a>(&self, text: &'a str) -> Option<Vec<&'a str>> {
+  fn matches<'a>(&self, text: &'a str) -> Option<Vec<Option<&'a str>>> {
     let captures = self.captures(text)?;
 
     let captures = captures
       .iter()
       .skip(1)
-      .map(|c| c.map(|m| m.as_str()).unwrap_or(""))
+      .map(|c| c.map(|m| m.as_str()))
       .collect();
 
     Some(captures)

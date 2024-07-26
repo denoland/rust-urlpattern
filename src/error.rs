@@ -1,53 +1,80 @@
-use derive_more::Display;
+use std::fmt;
 
 use crate::tokenizer::TokenType;
 
-/// A error occuring during URL pattern construction, or matching.
-#[derive(Display)]
+/// A error occurring during URL pattern construction, or matching.
+#[derive(Debug)]
 pub enum Error {
-  #[display(fmt = "a relative input without a base URL is not valid")]
   BaseUrlRequired,
-
-  #[display(
-    fmt = "specifying both an init object, and a seperate base URL is not valid"
-  )]
   BaseUrlWithInit,
-
-  #[display(fmt = "tokenizer error: {} (at char {})", _0, _1)]
   Tokenizer(TokenizerError, usize),
-
-  #[display(fmt = "parser error: {}", _0)]
   Parser(ParserError),
-
   Url(url::ParseError),
-
-  #[display(fmt = "regexp error")]
   RegExp(()),
+}
+
+impl fmt::Display for Error {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Error::BaseUrlRequired => {
+        f.write_str("a relative input without a base URL is not valid")
+      }
+      Error::BaseUrlWithInit => f.write_str(
+        "specifying both an init object, and a separate base URL is not valid",
+      ),
+      Error::Tokenizer(err, pos) => {
+        write!(f, "tokenizer error: {err} (at char {pos})")
+      }
+      Error::Parser(err) => write!(f, "parser error: {err}"),
+      Error::Url(err) => err.fmt(f),
+      Error::RegExp(_) => f.write_str("regexp error"),
+    }
+  }
 }
 
 impl std::error::Error for Error {}
 
-impl std::fmt::Debug for Error {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    std::fmt::Display::fmt(self, f)
-  }
-}
-
-#[derive(Debug, Display)]
+#[derive(Debug)]
 pub enum TokenizerError {
-  #[display(fmt = "incomplete escape code")]
   IncompleteEscapeCode,
-  #[display(fmt = "invalid name; must be at least length 1")]
   InvalidName,
-  #[display(fmt = "invalid regex: {}", _0)]
   InvalidRegex(&'static str),
 }
 
-#[derive(Debug, Display)]
-pub enum ParserError {
-  #[display(fmt = "expected token {}, found '{}' of type {}", _0, _2, _1)]
-  ExpectedToken(TokenType, TokenType, String),
+impl fmt::Display for TokenizerError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::IncompleteEscapeCode => f.write_str("incomplete escape code"),
+      Self::InvalidName => {
+        f.write_str("invalid name; must be at least length 1")
+      }
+      Self::InvalidRegex(err) => write!(f, "invalid regex: {err}"),
+    }
+  }
+}
 
-  #[display(fmt = "pattern contains duplicate name {}", _0)]
+impl std::error::Error for TokenizerError {}
+
+#[derive(Debug)]
+pub enum ParserError {
+  ExpectedToken(TokenType, TokenType, String),
   DuplicateName(String),
 }
+
+impl fmt::Display for ParserError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::ExpectedToken(expected_ty, found_ty, found_val) => {
+        write!(
+          f,
+          "expected token {expected_ty:?}, found '{found_val}' of type {found_ty:?}"
+        )
+      }
+      Self::DuplicateName(name) => {
+        write!(f, "pattern contains duplicate name {name}")
+      }
+    }
+  }
+}
+
+impl std::error::Error for ParserError {}
