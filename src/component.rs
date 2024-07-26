@@ -19,6 +19,7 @@ pub(crate) struct Component<R: RegExp> {
   pub regexp: Result<R, Error>,
   pub group_name_list: Vec<String>,
   pub matcher: Matcher<R>,
+  pub has_regexp_group: bool,
 }
 
 impl<R: RegExp> Component<R> {
@@ -47,6 +48,9 @@ impl<R: RegExp> Component<R> {
       regexp,
       group_name_list: name_list,
       matcher,
+      has_regexp_group: part_list
+        .iter()
+        .any(|part| part.kind == PartType::Regexp),
     })
   }
 
