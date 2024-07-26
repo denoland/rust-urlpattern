@@ -18,8 +18,9 @@ mod tokenizer;
 pub use error::Error;
 use url::Url;
 
-use crate::canonicalize_and_process::is_special_scheme;
 use crate::canonicalize_and_process::special_scheme_default_port;
+use crate::canonicalize_and_process::ProcessType;
+use crate::canonicalize_and_process::{is_special_scheme, process_base_url};
 use crate::component::Component;
 use crate::regexp::RegExp;
 
@@ -55,7 +56,7 @@ impl UrlPatternInit {
   #[allow(clippy::too_many_arguments)]
   fn process(
     &self,
-    kind: canonicalize_and_process::ProcessType,
+    kind: ProcessType,
     protocol: Option<String>,
     username: Option<String>,
     password: Option<String>,
@@ -78,18 +79,84 @@ impl UrlPatternInit {
     };
 
     let base_url = if let Some(parsed_base_url) = &self.base_url {
-      // TODO: check if these are correct
-      result.protocol = Some(parsed_base_url.scheme().to_string());
-      result.username = Some(parsed_base_url.username().to_string());
-      result.password =
-        Some(parsed_base_url.password().unwrap_or_default().to_string());
-      result.hostname =
-        Some(parsed_base_url.host_str().unwrap_or_default().to_string());
-      result.port = Some(url::quirks::port(parsed_base_url).to_string());
-      result.pathname =
-        Some(url::quirks::pathname(parsed_base_url).to_string());
-      result.search = Some(parsed_base_url.query().unwrap_or("").to_string());
-      result.hash = Some(parsed_base_url.fragment().unwrap_or("").to_string());
+      if self.protocol.is_none() {
+        result.protocol =
+          Some(process_base_url(parsed_base_url.scheme(), &kind));
+      }
+
+      if kind != ProcessType::Pattern
+        && (self.protocol.is_none()
+          && self.hostname.is_none()
+          && self.port.is_none()
+          && self.username.is_none())
+      {
+        result.username =
+          Some(process_base_url(parsed_base_url.username(), &kind));
+      }
+
+      if kind != ProcessType::Pattern
+        && (self.protocol.is_none()
+          && self.hostname.is_none()
+          && self.port.is_none()
+          && self.username.is_none()
+          && self.password.is_none())
+      {
+        result.password = Some(process_base_url(
+          parsed_base_url.password().unwrap_or_default(),
+          &kind,
+        ));
+      }
+
+      if self.protocol.is_none() && self.hostname.is_none() {
+        result.hostname = Some(process_base_url(
+          parsed_base_url.host_str().unwrap_or_default(),
+          &kind,
+        ));
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+      {
+        result.port =
+          Some(process_base_url(url::quirks::port(parsed_base_url), &kind));
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+        && self.pathname.is_none()
+      {
+        result.pathname = Some(process_base_url(
+          url::quirks::pathname(parsed_base_url),
+          &kind,
+        ));
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+        && self.pathname.is_none()
+        && self.search.is_none()
+      {
+        result.search = Some(process_base_url(
+          parsed_base_url.query().unwrap_or_default(),
+          &kind,
+        ));
+      }
+
+      if self.protocol.is_none()
+        && self.hostname.is_none()
+        && self.port.is_none()
+        && self.pathname.is_none()
+        && self.search.is_none()
+        && self.hash.is_none()
+      {
+        result.hash = Some(process_base_url(
+          parsed_base_url.fragment().unwrap_or_default(),
+          &kind,
+        ));
+      }
 
       Some(parsed_base_url)
     } else {
@@ -202,7 +269,7 @@ fn is_absolute_pathname(
 /// // Match the pattern against a URL.
 /// let url = "https://example.com/users/123".parse().unwrap();
 /// let result = pattern.exec(UrlPatternMatchInput::Url(url)).unwrap().unwrap();
-/// assert_eq!(result.pathname.groups.get("id").unwrap(), "123");
+/// assert_eq!(result.pathname.groups.get("id").unwrap().as_ref().unwrap(), "123");
 ///# }
 /// ```
 #[derive(Debug)]
@@ -235,7 +302,7 @@ impl<R: RegExp> UrlPattern<R> {
     report_regex_errors: bool,
   ) -> Result<Self, Error> {
     let mut processed_init = init.process(
-      canonicalize_and_process::ProcessType::Pattern,
+      ProcessType::Pattern,
       None,
       None,
       None,
@@ -378,6 +445,18 @@ impl<R: RegExp> UrlPattern<R> {
     &self.hash.pattern_string
   }
 
+  /// Returns whether the URLPattern contains one or more groups which uses regular expression matching.
+  pub fn has_regexp_groups(&self) -> bool {
+    self.protocol.has_regexp_group
+      || self.username.has_regexp_group
+      || self.password.has_regexp_group
+      || self.hostname.has_regexp_group
+      || self.port.has_regexp_group
+      || self.pathname.has_regexp_group
+      || self.search.has_regexp_group
+      || self.hash.has_regexp_group
+  }
+
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-test
   /// Test if a given [UrlPatternInput] (with optional base url), matches the
   /// pattern.
@@ -401,7 +480,7 @@ impl<R: RegExp> UrlPattern<R> {
     &self,
     input: UrlPatternMatchInput,
   ) -> Result<Option<UrlPatternResult>, Error> {
-    let input = match crate::quirks::parse_match_input(input) {
+    let input = match quirks::parse_match_input(input) {
       Some(input) => input,
       None => return Ok(None),
     };
@@ -496,7 +575,7 @@ pub struct UrlPatternComponentResult {
   /// The matched input for this component.
   pub input: String,
   /// The values for all named groups in the pattern.
-  pub groups: std::collections::HashMap<String, String>,
+  pub groups: std::collections::HashMap<String, Option<String>>,
 }
 
 #[cfg(test)]
@@ -525,7 +604,7 @@ mod tests {
   #[derive(Debug, Deserialize)]
   struct ComponentResult {
     input: String,
-    groups: HashMap<String, String>,
+    groups: HashMap<String, Option<String>>,
   }
 
   #[derive(Deserialize)]
@@ -578,10 +657,10 @@ mod tests {
   }
 
   fn test_case(case: TestCase) {
-    let input = case.pattern.get(0).cloned();
-    let mut base_url = case.pattern.get(1).map(|input| match input {
-      StringOrInit::String(str) => str.clone(),
-      StringOrInit::Init(_) => unreachable!(),
+    let input = case.pattern.first().cloned();
+    let mut base_url = case.pattern.get(1).and_then(|input| match input {
+      StringOrInit::String(str) => Some(str.clone()),
+      StringOrInit::Init(_) => None,
     });
 
     println!("\n=====");
@@ -652,7 +731,48 @@ mod tests {
           }) = &input
           {
             expected = Some($field.to_owned())
-          } else if let Some(base_url) = &base_url {
+          } else if {
+            if let StringOrInit::Init(init) = &input {
+              match stringify!($field) {
+                "protocol" => false,
+                "hostname" => init.protocol.is_some(),
+                "port" => init.protocol.is_some() || init.hostname.is_some(),
+                "username" => false,
+                "password" => false,
+                "pathname" => {
+                  init.protocol.is_some()
+                    || init.hostname.is_some()
+                    || init.port.is_some()
+                }
+                "search" => {
+                  init.protocol.is_some()
+                    || init.hostname.is_some()
+                    || init.port.is_some()
+                    || init.pathname.is_some()
+                }
+                "hash" => {
+                  init.protocol.is_some()
+                    || init.hostname.is_some()
+                    || init.port.is_some()
+                    || init.pathname.is_some()
+                    || init.search.is_some()
+                }
+                _ => unreachable!(),
+              }
+            } else {
+              false
+            }
+          } {
+            expected = Some("*".to_owned())
+          } else if let Some(base_url) =
+            base_url.as_ref().and_then(|base_url| {
+              if !matches!(stringify!($field), "username" | "password") {
+                Some(base_url)
+              } else {
+                None
+              }
+            })
+          {
             let base_url = Url::parse(base_url).unwrap();
             let field = url::quirks::$field(&base_url);
             let field: String = match stringify!($field) {
@@ -672,8 +792,8 @@ mod tests {
         let pattern = &pattern.$field.pattern_string;
 
         assert_eq!(
-          pattern,
           &expected,
+          pattern,
           "pattern for {} does not match",
           stringify!($field)
         );
@@ -689,7 +809,7 @@ mod tests {
     assert_field!(search);
     assert_field!(hash);
 
-    let input = case.inputs.get(0).cloned();
+    let input = case.inputs.first().cloned();
     let base_url = case.inputs.get(1).map(|input| match input {
       StringOrInit::String(str) => str.clone(),
       StringOrInit::Init(_) => unreachable!(),
@@ -787,7 +907,7 @@ mod tests {
             if !exactly_empty_components
               .contains(&stringify!($component).to_owned())
             {
-              groups.insert("0".to_owned(), "".to_owned());
+              groups.insert("0".to_owned(), Some("".to_owned()));
             }
             UrlPatternComponentResult {
               input: "".to_owned(),
@@ -832,5 +952,22 @@ mod tests {
       ..Default::default()
     })
     .unwrap();
+  }
+
+  #[test]
+  fn has_regexp_group() {
+    let pattern = <UrlPattern>::parse(UrlPatternInit {
+      pathname: Some("/:foo.".to_owned()),
+      ..Default::default()
+    })
+    .unwrap();
+    assert!(!pattern.has_regexp_groups());
+
+    let pattern = <UrlPattern>::parse(UrlPatternInit {
+      pathname: Some("/(.*?)".to_owned()),
+      ..Default::default()
+    })
+    .unwrap();
+    assert!(pattern.has_regexp_groups());
   }
 }

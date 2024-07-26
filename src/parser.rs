@@ -387,7 +387,7 @@ where
     if name_token.is_some() || regexp_or_wildcard_token.is_some() {
       let mut prefix = String::new();
       if let Some(char_token) = char_token {
-        prefix = char_token.value.to_owned();
+        char_token.value.clone_into(&mut prefix);
       }
       if !prefix.is_empty() && prefix != options.prefix_code_point {
         parser.pending_fixed_value.push_str(&prefix);
