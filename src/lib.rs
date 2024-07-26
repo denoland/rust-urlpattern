@@ -959,7 +959,8 @@ mod tests {
     quirks::process_construct_pattern_input(
       quirks::StringOrInit::String(":café://:foo".to_owned()),
       None,
-    ).unwrap();
+    )
+    .unwrap();
   }
 
   #[test]
