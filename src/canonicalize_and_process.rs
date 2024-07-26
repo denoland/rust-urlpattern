@@ -270,3 +270,25 @@ pub fn special_scheme_default_port(scheme: &str) -> Option<&'static str> {
     _ => None,
   }
 }
+
+// Ref: https://urlpattern.spec.whatwg.org/#process-a-base-url-string
+pub fn process_base_url(input: &str, kind: &ProcessType) -> String {
+  if kind != &ProcessType::Pattern {
+    input.to_string()
+  } else {
+    escape_pattern_string(input)
+  }
+}
+
+// Ref: https://wicg.github.io/urlpattern/#escape-a-pattern-string
+pub fn escape_pattern_string(input: &str) -> String {
+  assert!(input.is_ascii());
+  let mut result = String::new();
+  for char in input.chars() {
+    if matches!(char, '+' | '*' | '?' | ':' | '{' | '}' | '(' | ')' | '\\') {
+      result.push('\\');
+    }
+    result.push(char);
+  }
+  result
+}
