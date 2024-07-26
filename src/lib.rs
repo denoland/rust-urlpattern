@@ -845,4 +845,21 @@ mod tests {
     })
     .unwrap();
   }
+
+  #[test]
+  fn has_regexp_group() {
+    let pattern = <UrlPattern>::parse(UrlPatternInit {
+      pathname: Some("/:foo.".to_owned()),
+      ..Default::default()
+    })
+    .unwrap();
+    assert!(!pattern.has_regexp_groups());
+
+    let pattern = <UrlPattern>::parse(UrlPatternInit {
+      pathname: Some("/(.*?)".to_owned()),
+      ..Default::default()
+    })
+    .unwrap();
+    assert!(pattern.has_regexp_groups());
+  }
 }
