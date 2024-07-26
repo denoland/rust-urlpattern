@@ -29,7 +29,7 @@ pub(crate) enum InnerMatcher<R: RegExp> {
   /// - /blog/:id
   /// - /blog/:id.html
   SingleCapture {
-    filter: Option<String>,
+    filter: Option<char>,
     allow_empty: bool,
   },
   /// A regexp matcher. This is a bail-out matcher for arbitrary complexity
@@ -49,7 +49,10 @@ impl<R: RegExp> Matcher<R> {
     }
   }
 
-  pub fn matches<'a>(&self, mut input: &'a str) -> Option<Vec<&'a str>> {
+  pub fn matches<'a>(
+    &self,
+    mut input: &'a str,
+  ) -> Option<Vec<Option<&'a str>>> {
     let prefix_len = self.prefix.len();
     let suffix_len = self.suffix.len();
     let input_len = input.len();
@@ -78,11 +81,11 @@ impl<R: RegExp> Matcher<R> {
           return None;
         }
         if let Some(filter) = filter {
-          if input.contains(filter) {
+          if input.contains(*filter) {
             return None;
           }
         }
-        Some(vec![input])
+        Some(vec![Some(input)])
       }
       InnerMatcher::RegExp { regexp, .. } => {
         regexp.as_ref().unwrap().matches(input)
