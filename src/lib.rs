@@ -31,7 +31,7 @@ use crate::regexp::RegExp;
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UrlPatternOptions {
-  ignore_case: bool,
+  pub ignore_case: bool,
 }
 
 /// The structured input used to create a URL pattern.
@@ -513,6 +513,7 @@ impl<R: RegExp> UrlPattern<R> {
     let hostname_exec_result = self.hostname.matcher.matches(&input.hostname);
     let port_exec_result = self.port.matcher.matches(&input.port);
     let pathname_exec_result = self.pathname.matcher.matches(&input.pathname);
+    dbg!(&pathname_exec_result, &input.pathname);
     let search_exec_result = self.search.matcher.matches(&input.search);
     let hash_exec_result = self.hash.matcher.matches(&input.hash);
 
@@ -609,10 +610,11 @@ mod tests {
   use serde::Serialize;
   use url::Url;
 
+  use crate::quirks;
   use crate::quirks::StringOrInit;
+  use crate::UrlPatternComponentResult;
+  use crate::UrlPatternOptions;
   use crate::UrlPatternResult;
-  use crate::{quirks, UrlPatternOptions};
-  use crate::{UrlPatternComponentResult, UrlPatternMatchInput};
 
   use super::UrlPattern;
   use super::UrlPatternInit;

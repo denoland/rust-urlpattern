@@ -160,7 +160,7 @@ fn generate_regular_expression_and_name_list(
       regexp_value,
       options.escape_regexp_string(&part.suffix),
       if part.modifier == PartModifier::ZeroOrMore {
-        "?" // TODO: https://github.com/WICG/urlpattern/issues/91
+        "?"
       } else {
         ""
       }
@@ -305,7 +305,14 @@ fn generate_matcher<R: RegExp>(
   // If there are no more parts, we must have a prefix and/or a suffix. We can
   // combine these into a single fixed text literal matcher.
   if part_list.is_empty() {
-    return Matcher::literal(format!("{prefix}{suffix}"));
+    return Matcher {
+      prefix: "".to_string(),
+      suffix: "".to_string(),
+      inner: InnerMatcher::Literal {
+        literal: format!("{prefix}{suffix}"),
+      },
+      ignore_case: options.ignore_case,
+    };
   }
 
   let inner = match part_list {
@@ -352,5 +359,6 @@ fn generate_matcher<R: RegExp>(
     prefix,
     suffix,
     inner,
+    ignore_case: options.ignore_case,
   }
 }

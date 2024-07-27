@@ -8,6 +8,7 @@ pub(crate) struct Matcher<R: RegExp> {
   pub prefix: String,
   pub suffix: String,
   pub inner: InnerMatcher<R>,
+  pub ignore_case: bool,
 }
 
 #[derive(Debug)]
@@ -41,14 +42,6 @@ pub(crate) enum InnerMatcher<R: RegExp> {
 }
 
 impl<R: RegExp> Matcher<R> {
-  pub(crate) fn literal(literal: String) -> Self {
-    Matcher {
-      prefix: "".to_string(),
-      suffix: "".to_string(),
-      inner: InnerMatcher::Literal { literal },
-    }
-  }
-
   pub fn matches<'a>(
     &self,
     mut input: &'a str,
@@ -72,7 +65,13 @@ impl<R: RegExp> Matcher<R> {
     }
 
     match &self.inner {
-      InnerMatcher::Literal { literal } => (input == literal).then(Vec::new),
+      InnerMatcher::Literal { literal } => {
+        if self.ignore_case {
+          (input.to_lowercase() == literal.to_lowercase()).then(Vec::new)
+        } else {
+          (input == literal).then(Vec::new)
+        }
+      }
       InnerMatcher::SingleCapture {
         filter,
         allow_empty,
@@ -81,8 +80,17 @@ impl<R: RegExp> Matcher<R> {
           return None;
         }
         if let Some(filter) = filter {
-          if input.contains(*filter) {
-            return None;
+          if self.ignore_case {
+            if input
+              .to_lowercase()
+              .contains(filter.to_lowercase().collect::<Vec<_>>().as_slice())
+            {
+              return None;
+            }
+          } else {
+            if input.contains(*filter) {
+              return None;
+            }
           }
         }
         Some(vec![Some(input)])
