@@ -87,10 +87,8 @@ impl<R: RegExp> Matcher<R> {
             {
               return None;
             }
-          } else {
-            if input.contains(*filter) {
-              return None;
-            }
+          } else if input.contains(*filter) {
+            return None;
           }
         }
         Some(vec![Some(input)])
