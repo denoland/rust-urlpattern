@@ -513,7 +513,6 @@ impl<R: RegExp> UrlPattern<R> {
     let hostname_exec_result = self.hostname.matcher.matches(&input.hostname);
     let port_exec_result = self.port.matcher.matches(&input.port);
     let pathname_exec_result = self.pathname.matcher.matches(&input.pathname);
-    dbg!(&pathname_exec_result, &input.pathname);
     let search_exec_result = self.search.matcher.matches(&input.search);
     let hash_exec_result = self.hash.matcher.matches(&input.hash);
 
