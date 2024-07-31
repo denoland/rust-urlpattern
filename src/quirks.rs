@@ -9,6 +9,7 @@ use crate::component::Component;
 use crate::parser::RegexSyntax;
 use crate::regexp::RegExp;
 pub use crate::Error;
+use crate::UrlPatternOptions;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UrlPatternInit {
@@ -167,26 +168,30 @@ impl From<crate::matcher::InnerMatcher<EcmaRegexp>> for InnerMatcher {
   }
 }
 
-struct EcmaRegexp(String);
+struct EcmaRegexp(String, String);
 
 impl RegExp for EcmaRegexp {
   fn syntax() -> RegexSyntax {
     RegexSyntax::EcmaScript
   }
 
-  fn parse(pattern: &str) -> Result<Self, ()> {
-    Ok(EcmaRegexp(pattern.to_string()))
+  fn parse(pattern: &str, flags: &str) -> Result<Self, ()> {
+    Ok(EcmaRegexp(pattern.to_string(), flags.to_string()))
   }
 
   fn matches<'a>(&self, text: &'a str) -> Option<Vec<Option<&'a str>>> {
-    let regexp = regex::Regex::parse(&self.0).ok()?;
+    let regexp = regex::Regex::parse(&self.0, &self.1).ok()?;
     regexp.matches(text)
   }
 }
 
 /// Parse a pattern into its components.
-pub fn parse_pattern(init: crate::UrlPatternInit) -> Result<UrlPattern, Error> {
-  let pattern = crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false)?;
+pub fn parse_pattern(
+  init: crate::UrlPatternInit,
+  options: UrlPatternOptions,
+) -> Result<UrlPattern, Error> {
+  let pattern =
+    crate::UrlPattern::<EcmaRegexp>::parse_internal(init, false, options)?;
   let urlpattern = UrlPattern {
     has_regexp_groups: pattern.has_regexp_groups(),
     protocol: pattern.protocol.into(),
@@ -210,10 +215,10 @@ pub fn process_match_input(
   let mut inputs = (input.clone(), None);
   let init = match input {
     StringOrInit::String(url) => {
-      let base_url = if let Some(base_url) = base_url_str {
-        match Url::parse(base_url) {
+      let base_url = if let Some(base_url_str) = base_url_str {
+        match Url::parse(base_url_str) {
           Ok(base_url) => {
-            inputs.1 = Some(base_url.to_string());
+            inputs.1 = Some(base_url_str.to_string());
             Some(base_url)
           }
           Err(_) => return Ok(None),

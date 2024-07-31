@@ -5,7 +5,7 @@ pub trait RegExp: Sized {
 
   /// Generates a regexp pattern for the given string. If the pattern is
   /// invalid, the parse function should return an error.
-  fn parse(pattern: &str) -> Result<Self, ()>;
+  fn parse(pattern: &str, flags: &str) -> Result<Self, ()>;
 
   /// Matches the given text against the regular expression and returns the list
   /// of captures. The matches are returned in the order they appear in the
@@ -22,8 +22,8 @@ impl RegExp for regex::Regex {
     RegexSyntax::Rust
   }
 
-  fn parse(pattern: &str) -> Result<Self, ()> {
-    regex::Regex::new(pattern).map_err(|_| ())
+  fn parse(pattern: &str, flags: &str) -> Result<Self, ()> {
+    regex::Regex::new(&format!("(?{flags}){pattern}")).map_err(|_| ())
   }
 
   fn matches<'a>(&self, text: &'a str) -> Option<Vec<Option<&'a str>>> {

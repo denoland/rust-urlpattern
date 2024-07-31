@@ -85,7 +85,7 @@ impl Tokenizer {
     self.token_list.push(Token {
       kind,
       index: self.index,
-      value, // TODO: check if this is right
+      value,
     });
     self.index = next_pos;
   }

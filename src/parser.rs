@@ -26,7 +26,8 @@ pub enum RegexSyntax {
 pub struct Options {
   pub delimiter_code_point: Option<char>,
   pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
-  regex_syntax: RegexSyntax,
+  pub regex_syntax: RegexSyntax,
+  pub ignore_case: bool,
 }
 
 impl std::default::Default for Options {
@@ -37,6 +38,7 @@ impl std::default::Default for Options {
       delimiter_code_point: None,
       prefix_code_point: String::new(),
       regex_syntax: RegexSyntax::Rust,
+      ignore_case: false,
     }
   }
 }
@@ -49,6 +51,7 @@ impl Options {
       delimiter_code_point: Some('.'),
       prefix_code_point: String::new(),
       regex_syntax: RegexSyntax::Rust,
+      ignore_case: false,
     }
   }
 
@@ -59,6 +62,7 @@ impl Options {
       delimiter_code_point: Some('/'),
       prefix_code_point: String::from("/"),
       regex_syntax: RegexSyntax::Rust,
+      ignore_case: false,
     }
   }
 

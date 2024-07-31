@@ -16,13 +16,23 @@ mod regexp;
 mod tokenizer;
 
 pub use error::Error;
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
+use crate::canonicalize_and_process::is_special_scheme;
+use crate::canonicalize_and_process::process_base_url;
 use crate::canonicalize_and_process::special_scheme_default_port;
 use crate::canonicalize_and_process::ProcessType;
-use crate::canonicalize_and_process::{is_special_scheme, process_base_url};
 use crate::component::Component;
 use crate::regexp::RegExp;
+
+/// Options to create a URL pattern.
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UrlPatternOptions {
+  pub ignore_case: bool,
+}
 
 /// The structured input used to create a URL pattern.
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -264,7 +274,7 @@ fn is_absolute_pathname(
 ///   pathname: Some("/users/:id".to_owned()),
 ///   ..Default::default()
 /// };
-/// let pattern = <UrlPattern>::parse(init).unwrap();
+/// let pattern = <UrlPattern>::parse(init, Default::default()).unwrap();
 ///
 /// // Match the pattern against a URL.
 /// let url = "https://example.com/users/123".parse().unwrap();
@@ -293,13 +303,17 @@ pub enum UrlPatternMatchInput {
 impl<R: RegExp> UrlPattern<R> {
   // Ref: https://wicg.github.io/urlpattern/#dom-urlpattern-urlpattern
   /// Parse a [UrlPatternInit] into a [UrlPattern].
-  pub fn parse(init: UrlPatternInit) -> Result<Self, Error> {
-    Self::parse_internal(init, true)
+  pub fn parse(
+    init: UrlPatternInit,
+    options: UrlPatternOptions,
+  ) -> Result<Self, Error> {
+    Self::parse_internal(init, true, options)
   }
 
   pub(crate) fn parse_internal(
     init: UrlPatternInit,
     report_regex_errors: bool,
+    options: UrlPatternOptions,
   ) -> Result<Self, Error> {
     let mut processed_init = init.process(
       ProcessType::Pattern,
@@ -352,18 +366,26 @@ impl<R: RegExp> UrlPattern<R> {
       .optionally_transpose_regex_error(report_regex_errors)?
     };
 
+    let compile_options = parser::Options {
+      ignore_case: options.ignore_case,
+      ..Default::default()
+    };
+
     let pathname = if protocol.protocol_component_matches_special_scheme() {
       Component::compile(
         processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_pathname,
-        parser::Options::pathname(),
+        parser::Options {
+          ignore_case: options.ignore_case,
+          ..parser::Options::pathname()
+        },
       )?
       .optionally_transpose_regex_error(report_regex_errors)?
     } else {
       Component::compile(
         processed_init.pathname.as_deref(),
         canonicalize_and_process::canonicalize_an_opaque_pathname,
-        parser::Options::default(),
+        compile_options.clone(),
       )?
       .optionally_transpose_regex_error(report_regex_errors)?
     };
@@ -393,13 +415,13 @@ impl<R: RegExp> UrlPattern<R> {
       search: Component::compile(
         processed_init.search.as_deref(),
         canonicalize_and_process::canonicalize_search,
-        parser::Options::default(),
+        compile_options.clone(),
       )?
       .optionally_transpose_regex_error(report_regex_errors)?,
       hash: Component::compile(
         processed_init.hash.as_deref(),
         canonicalize_and_process::canonicalize_hash,
-        parser::Options::default(),
+        compile_options,
       )?
       .optionally_transpose_regex_error(report_regex_errors)?,
     })
@@ -580,20 +602,23 @@ pub struct UrlPatternComponentResult {
 
 #[cfg(test)]
 mod tests {
+  use regex::Regex;
   use std::collections::HashMap;
 
   use serde::Deserialize;
+  use serde::Serialize;
   use url::Url;
 
   use crate::quirks;
   use crate::quirks::StringOrInit;
   use crate::UrlPatternComponentResult;
+  use crate::UrlPatternOptions;
   use crate::UrlPatternResult;
 
   use super::UrlPattern;
   use super::UrlPatternInit;
 
-  #[derive(Deserialize)]
+  #[derive(Debug, Deserialize)]
   #[serde(untagged)]
   #[allow(clippy::large_enum_variant)]
   enum ExpectedMatch {
@@ -607,10 +632,18 @@ mod tests {
     groups: HashMap<String, Option<String>>,
   }
 
-  #[derive(Deserialize)]
+  #[allow(clippy::large_enum_variant)]
+  #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+  #[serde(untagged)]
+  pub enum StringOrInitOrOptions {
+    Options(UrlPatternOptions),
+    StringOrInit(quirks::StringOrInit),
+  }
+
+  #[derive(Debug, Deserialize)]
   struct TestCase {
     skip: Option<String>,
-    pattern: Vec<quirks::StringOrInit>,
+    pattern: Vec<StringOrInitOrOptions>,
     #[serde(default)]
     inputs: Vec<quirks::StringOrInit>,
     expected_obj: Option<quirks::StringOrInit>,
@@ -657,11 +690,34 @@ mod tests {
   }
 
   fn test_case(case: TestCase) {
-    let input = case.pattern.first().cloned();
-    let mut base_url = case.pattern.get(1).and_then(|input| match input {
-      StringOrInit::String(str) => Some(str.clone()),
-      StringOrInit::Init(_) => None,
-    });
+    let mut input = quirks::StringOrInit::Init(Default::default());
+    let mut base_url = None;
+    let mut options = None;
+
+    for (i, pattern_input) in case.pattern.into_iter().enumerate() {
+      match pattern_input {
+        StringOrInitOrOptions::StringOrInit(str_or_init) => {
+          if i == 0 {
+            input = str_or_init;
+          } else if i == 1 {
+            base_url = match str_or_init {
+              StringOrInit::String(str) => Some(str.clone()),
+              StringOrInit::Init(_) => None,
+            };
+          } else if matches!(&case.expected_obj, Some(StringOrInit::String(s)) if s == "error")
+          {
+            println!("Expected not to pass due to bad parameters");
+            println!("✅ Passed");
+            return;
+          } else {
+            panic!("Failed to parse testcase");
+          }
+        }
+        StringOrInitOrOptions::Options(opts) => {
+          options = Some(opts);
+        }
+      }
+    }
 
     println!("\n=====");
     println!(
@@ -669,20 +725,23 @@ mod tests {
       serde_json::to_string(&input).unwrap(),
       serde_json::to_string(&base_url).unwrap()
     );
+    if let Some(options) = &options {
+      println!("Options: {}", serde_json::to_string(&options).unwrap(),);
+    }
 
     if let Some(reason) = case.skip {
       println!("🟠 Skipping: {reason}");
       return;
     }
 
-    let input = input.unwrap_or_else(|| StringOrInit::Init(Default::default()));
-
     let init_res = quirks::process_construct_pattern_input(
       input.clone(),
       base_url.as_deref(),
     );
 
-    let res = init_res.and_then(<UrlPattern>::parse);
+    let res = init_res.and_then(|init_res| {
+      UrlPattern::<Regex>::parse(init_res, options.unwrap_or_default())
+    });
     let expected_obj = match case.expected_obj {
       Some(StringOrInit::String(s)) if s == "error" => {
         assert!(res.is_err());
@@ -870,8 +929,8 @@ mod tests {
     let actual_match = exec_res.unwrap();
 
     assert_eq!(
-      test,
       expected_match.is_some(),
+      test,
       "pattern.test result is not correct"
     );
 
@@ -947,10 +1006,13 @@ mod tests {
 
   #[test]
   fn issue26() {
-    <UrlPattern>::parse(UrlPatternInit {
-      pathname: Some("/:foo.".to_owned()),
-      ..Default::default()
-    })
+    UrlPattern::<Regex>::parse(
+      UrlPatternInit {
+        pathname: Some("/:foo.".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
     .unwrap();
   }
 
@@ -965,17 +1027,23 @@ mod tests {
 
   #[test]
   fn has_regexp_group() {
-    let pattern = <UrlPattern>::parse(UrlPatternInit {
-      pathname: Some("/:foo.".to_owned()),
-      ..Default::default()
-    })
+    let pattern = <UrlPattern>::parse(
+      UrlPatternInit {
+        pathname: Some("/:foo.".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
     .unwrap();
     assert!(!pattern.has_regexp_groups());
 
-    let pattern = <UrlPattern>::parse(UrlPatternInit {
-      pathname: Some("/(.*?)".to_owned()),
-      ..Default::default()
-    })
+    let pattern = <UrlPattern>::parse(
+      UrlPatternInit {
+        pathname: Some("/(.*?)".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
     .unwrap();
     assert!(pattern.has_regexp_groups());
   }
