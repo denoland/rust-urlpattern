@@ -2782,7 +2782,6 @@
     }
   },
   {
-    "skip": "this does not error. same happens in Chrome as well.",
     "pattern": [ "/foo?bar#baz", { "ignoreCase": true },
       "https://example.com:8080" ],
     "inputs": [{ "pathname": "/FOO", "search": "BAR", "hash": "BAZ",

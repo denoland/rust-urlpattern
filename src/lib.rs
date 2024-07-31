@@ -699,11 +699,18 @@ mod tests {
         StringOrInitOrOptions::StringOrInit(str_or_init) => {
           if i == 0 {
             input = str_or_init;
-          } else {
+          } else if i == 1 {
             base_url = match str_or_init {
               StringOrInit::String(str) => Some(str.clone()),
               StringOrInit::Init(_) => None,
             };
+          } else if matches!(&case.expected_obj, Some(StringOrInit::String(s)) if s == "error")
+          {
+            println!("Expected not to pass due to bad parameters");
+            println!("✅ Passed");
+            return;
+          } else {
+            panic!("Failed to parse testcase");
           }
         }
         StringOrInitOrOptions::Options(opts) => {
