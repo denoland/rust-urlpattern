@@ -1047,4 +1047,17 @@ mod tests {
     .unwrap();
     assert!(pattern.has_regexp_groups());
   }
+
+  #[test]
+  fn unicode_middle_dot() {
+    let pattern = <UrlPattern>::parse(
+      UrlPatternInit {
+        pathname: Some("/:a\u{30FB}b.".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
+    .unwrap();
+    assert_eq!(pattern.pathname.group_name_list, vec!["a\u{30FB}b"]);
+  }
 }
