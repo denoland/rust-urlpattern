@@ -1047,4 +1047,20 @@ mod tests {
     .unwrap();
     assert!(pattern.has_regexp_groups());
   }
+
+  #[test]
+  fn issue54() {
+    let pattern = <UrlPattern>::parse(
+      UrlPatternInit {
+        pathname: Some("/:thereisa\u{30FB}middledot.".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
+    .unwrap();
+    assert_eq!(
+      pattern.pathname.group_name_list,
+      vec!["thereisa\u{30FB}middledot"]
+    );
+  }
 }
