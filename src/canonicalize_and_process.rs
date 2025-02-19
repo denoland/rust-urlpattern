@@ -81,7 +81,9 @@ pub fn canonicalize_port(
   let mut url =
     url::Url::parse(&format!("{}://dummy.test", protocol.unwrap_or("dummy")))
       .unwrap();
-  url.set_port(Some(port)).unwrap(); // TODO: dont unwrap, instead ParseError
+  url
+    .set_port(Some(port))
+    .map_err(|_| Error::Url(url::ParseError::InvalidPort))?;
   Ok(url::quirks::port(&url).to_string())
 }
 
