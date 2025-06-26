@@ -73,15 +73,11 @@ pub fn canonicalize_port(
   if let Some("") = protocol {
     protocol = None;
   }
-  let port = value
-    .parse::<u16>()
-    .map_err(|_| Error::Url(url::ParseError::InvalidPort))?;
-  // Note: this unwrap is safe, because the protocol was previously parsed to be
-  // valid.
   let mut url =
     url::Url::parse(&format!("{}://dummy.test", protocol.unwrap_or("dummy")))
       .unwrap();
-  url.set_port(Some(port)).unwrap(); // TODO: dont unwrap, instead ParseError
+  url::quirks::set_port(&mut url, value)
+    .map_err(|_| Error::Url(url::ParseError::InvalidPort))?;
   Ok(url::quirks::port(&url).to_string())
 }
 
