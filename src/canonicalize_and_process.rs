@@ -73,6 +73,8 @@ pub fn canonicalize_port(
   if let Some("") = protocol {
     protocol = None;
   }
+  // Note: this unwrap is safe, because the protocol was previously parsed to be
+  // valid.
   let mut url =
     url::Url::parse(&format!("{}://dummy.test", protocol.unwrap_or("dummy")))
       .unwrap();

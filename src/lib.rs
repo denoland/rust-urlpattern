@@ -848,7 +848,6 @@ mod tests {
         }
 
         let expected = expected.unwrap();
-        let expected = expected.trim();
         let pattern = &pattern.$field.pattern_string;
 
         assert_eq!(
