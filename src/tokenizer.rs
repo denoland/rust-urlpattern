@@ -319,9 +319,9 @@ pub fn tokenize(
 #[inline]
 pub(crate) fn is_valid_name_codepoint(code_point: char, first: bool) -> bool {
   if first {
-    unic_ucd_ident::is_id_start(code_point) || matches!(code_point, '$' | '_')
+    unicode_id_start::is_id_start(code_point) || matches!(code_point, '$' | '_')
   } else {
-    unic_ucd_ident::is_id_continue(code_point)
+    unicode_id_start::is_id_continue(code_point)
       || matches!(code_point, '$' | '\u{200C}' | '\u{200D}')
   }
 }
