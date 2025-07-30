@@ -2494,15 +2494,33 @@
   },
   {
     "pattern": [{ "hostname": "bad\nhostname" }],
-    "expected_obj": "error"
+    "inputs": [{ "hostname": "badhostname" }],
+    "expected_obj": {
+      "hostname": "badhostname"
+    },
+    "expected_match": {
+      "hostname": { "input": "badhostname", "groups": {} }
+    }
   },
   {
     "pattern": [{ "hostname": "bad\rhostname" }],
-    "expected_obj": "error"
+    "inputs": [{ "hostname": "badhostname" }],
+    "expected_obj": {
+      "hostname": "badhostname"
+    },
+    "expected_match": {
+      "hostname": { "input": "badhostname", "groups": {} }
+    }
   },
   {
     "pattern": [{ "hostname": "bad\thostname" }],
-    "expected_obj": "error"
+    "inputs": [{ "hostname": "badhostname" }],
+    "expected_obj": {
+      "hostname": "badhostname"
+    },
+    "expected_match": {
+      "hostname": { "input": "badhostname", "groups": {} }
+    }
   },
   {
     "pattern": [{}],

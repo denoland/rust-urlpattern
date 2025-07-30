@@ -160,6 +160,14 @@ pub fn tokenize(
       );
       continue;
     }
+    if tokenizer.code_point == Some('\n')
+      || tokenizer.code_point == Some('\r')
+      || tokenizer.code_point == Some('\t')
+    {
+      // ignore newline, carriage return and tab
+      tokenizer.index = tokenizer.next_index;
+      continue;
+    }
     if tokenizer.code_point == Some('{') {
       tokenizer.add_token_with_default_pos_and_len(TokenType::Open);
       continue;
