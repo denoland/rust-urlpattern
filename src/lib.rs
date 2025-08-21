@@ -1064,6 +1064,22 @@ mod tests {
   }
 
   #[test]
+  fn issue54() {
+    let pattern = <UrlPattern>::parse(
+      UrlPatternInit {
+        pathname: Some("/:thereisa\u{30FB}middledot.".to_owned()),
+        ..Default::default()
+      },
+      Default::default(),
+    )
+    .unwrap();
+    assert_eq!(
+      pattern.pathname.group_name_list,
+      vec!["thereisa\u{30FB}middledot"]
+    );
+  }
+
+  #[test]
   fn issue61() {
     // Test case for https://github.com/denoland/deno/issues/29935
     // Custom protocols should not escape colons and slashes in pattern pathnames
