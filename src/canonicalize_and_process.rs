@@ -46,7 +46,8 @@ pub fn canonicalize_hostname(value: &str) -> Result<String, Error> {
     return Ok(String::new());
   }
   let mut url = url::Url::parse("http://dummy.test").unwrap();
-  url.set_host(Some(value)).map_err(Error::Url)?;
+  url::quirks::set_hostname(&mut url, value)
+    .map_err(|_| Error::Url(url::ParseError::InvalidDomainCharacter))?;
   Ok(url::quirks::hostname(&url).to_string())
 }
 
