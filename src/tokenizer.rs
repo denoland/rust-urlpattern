@@ -2,6 +2,10 @@
 
 use crate::error::TokenizerError;
 use crate::Error;
+use icu_properties::{
+  props::{IdContinue, IdStart},
+  CodePointSetDataBorrowed,
+};
 
 // Ref: https://wicg.github.io/urlpattern/#tokens
 // Ref: https://wicg.github.io/urlpattern/#tokenizing
@@ -323,13 +327,18 @@ pub fn tokenize(
   Ok(tokenizer.token_list)
 }
 
+static ID_START: CodePointSetDataBorrowed<'_> =
+  CodePointSetDataBorrowed::new::<IdStart>();
+static ID_CONTINUE: CodePointSetDataBorrowed<'_> =
+  CodePointSetDataBorrowed::new::<IdContinue>();
+
 // Ref: https://wicg.github.io/urlpattern/#is-a-valid-name-code-point
 #[inline]
 pub(crate) fn is_valid_name_codepoint(code_point: char, first: bool) -> bool {
   if first {
-    unic_ucd_ident::is_id_start(code_point) || matches!(code_point, '$' | '_')
+    ID_START.contains(code_point) || matches!(code_point, '$' | '_')
   } else {
-    unic_ucd_ident::is_id_continue(code_point)
+    ID_CONTINUE.contains(code_point)
       || matches!(code_point, '$' | '\u{200C}' | '\u{200D}')
   }
 }
