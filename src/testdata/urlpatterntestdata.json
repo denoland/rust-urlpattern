@@ -2474,7 +2474,6 @@
     }
   },
   {
-    "skip": "likely a bug in rust-url",
     "pattern": [{ "hostname": "bad\\:hostname" }],
     "expected_obj": "error"
   },
