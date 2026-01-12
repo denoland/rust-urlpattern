@@ -16,7 +16,7 @@ use std::fmt::Write;
 
 // Ref: https://wicg.github.io/urlpattern/#component
 #[derive(Debug)]
-pub(crate) struct Component<R: RegExp> {
+pub struct Component<R: RegExp> {
   pub pattern_string: String,
   pub regexp: Result<R, Error>,
   pub group_name_list: Vec<String>,
