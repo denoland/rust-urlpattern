@@ -924,12 +924,12 @@ mod tests {
 
     let match_input = quirks::process_match_input(input, base_url.as_deref());
 
-    if let Some(ExpectedMatch::String(s)) = &case.expected_match {
-      if s == "error" {
-        assert!(match_input.is_err());
-        println!("✅ Passed");
-        return;
-      }
+    if let Some(ExpectedMatch::String(s)) = &case.expected_match
+      && s == "error"
+    {
+      assert!(match_input.is_err());
+      println!("✅ Passed");
+      return;
     };
 
     let input = match_input.expect("failed to parse match input");
@@ -949,13 +949,13 @@ mod tests {
     } else {
       Ok(None)
     };
-    if let Some(ExpectedMatch::String(s)) = &case.expected_match {
-      if s == "error" {
-        assert!(test_res.is_err());
-        assert!(exec_res.is_err());
-        println!("✅ Passed");
-        return;
-      }
+    if let Some(ExpectedMatch::String(s)) = &case.expected_match
+      && s == "error"
+    {
+      assert!(test_res.is_err());
+      assert!(exec_res.is_err());
+      println!("✅ Passed");
+      return;
     };
 
     let expected_match = case.expected_match.map(|x| match x {
