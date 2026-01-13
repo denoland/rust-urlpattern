@@ -15,10 +15,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy,rustfmt
+      - uses: dsherret/rust-toolchain-file@v1
 
       - name: Format
         run: rustfmt --check src/lib.rs

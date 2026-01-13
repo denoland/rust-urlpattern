@@ -20,10 +20,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
+use crate::canonicalize_and_process::ProcessType;
 use crate::canonicalize_and_process::is_special_scheme;
 use crate::canonicalize_and_process::process_base_url;
 use crate::canonicalize_and_process::special_scheme_default_port;
-use crate::canonicalize_and_process::ProcessType;
 use crate::component::Component;
 use crate::regexp::RegExp;
 
@@ -207,17 +207,16 @@ impl UrlPatternInit {
     if let Some(pathname) = &self.pathname {
       result.pathname = Some(pathname.clone());
 
-      if let Some(base_url) = base_url {
-        if !base_url.cannot_be_a_base()
-          && !is_absolute_pathname(pathname, &kind)
-        {
-          let baseurl_path = url::quirks::pathname(base_url);
-          let slash_index = baseurl_path.rfind('/');
-          if let Some(slash_index) = slash_index {
-            let new_pathname = baseurl_path[..=slash_index].to_string();
-            result.pathname =
-              Some(format!("{}{}", new_pathname, result.pathname.unwrap()));
-          }
+      if let Some(base_url) = base_url
+        && !base_url.cannot_be_a_base()
+        && !is_absolute_pathname(pathname, &kind)
+      {
+        let baseurl_path = url::quirks::pathname(base_url);
+        let slash_index = baseurl_path.rfind('/');
+        if let Some(slash_index) = slash_index {
+          let new_pathname = baseurl_path[..=slash_index].to_string();
+          result.pathname =
+            Some(format!("{}{}", new_pathname, result.pathname.unwrap()));
         }
       }
 
@@ -332,12 +331,12 @@ impl<R: RegExp> UrlPattern<R> {
     )?;
 
     //  If processedInit["protocol"] is a special scheme and processedInit["port"] is its corresponding default port
-    if let Some(protocol) = &processed_init.protocol {
-      if is_special_scheme(protocol) {
-        let default_port = special_scheme_default_port(protocol);
-        if default_port == processed_init.port.as_deref() {
-          processed_init.port = Some(String::new())
-        }
+    if let Some(protocol) = &processed_init.protocol
+      && is_special_scheme(protocol)
+    {
+      let default_port = special_scheme_default_port(protocol);
+      if default_port == processed_init.port.as_deref() {
+        processed_init.port = Some(String::new())
       }
     }
 
@@ -648,11 +647,11 @@ mod tests {
   use serde::Serialize;
   use url::Url;
 
-  use crate::quirks;
-  use crate::quirks::StringOrInit;
   use crate::UrlPatternComponentResult;
   use crate::UrlPatternOptions;
   use crate::UrlPatternResult;
+  use crate::quirks;
+  use crate::quirks::StringOrInit;
 
   use super::UrlPattern;
   use super::UrlPatternInit;
@@ -925,12 +924,12 @@ mod tests {
 
     let match_input = quirks::process_match_input(input, base_url.as_deref());
 
-    if let Some(ExpectedMatch::String(s)) = &case.expected_match {
-      if s == "error" {
-        assert!(match_input.is_err());
-        println!("✅ Passed");
-        return;
-      }
+    if let Some(ExpectedMatch::String(s)) = &case.expected_match
+      && s == "error"
+    {
+      assert!(match_input.is_err());
+      println!("✅ Passed");
+      return;
     };
 
     let input = match_input.expect("failed to parse match input");
@@ -950,13 +949,13 @@ mod tests {
     } else {
       Ok(None)
     };
-    if let Some(ExpectedMatch::String(s)) = &case.expected_match {
-      if s == "error" {
-        assert!(test_res.is_err());
-        assert!(exec_res.is_err());
-        println!("✅ Passed");
-        return;
-      }
+    if let Some(ExpectedMatch::String(s)) = &case.expected_match
+      && s == "error"
+    {
+      assert!(test_res.is_err());
+      assert!(exec_res.is_err());
+      println!("✅ Passed");
+      return;
     };
 
     let expected_match = case.expected_match.map(|x| match x {

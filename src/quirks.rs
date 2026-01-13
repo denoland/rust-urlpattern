@@ -5,11 +5,11 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
+pub use crate::Error;
+use crate::UrlPatternOptions;
 pub use crate::component::Component;
 use crate::parser::RegexSyntax;
 use crate::regexp::RegExp;
-pub use crate::Error;
-use crate::UrlPatternOptions;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UrlPatternInit {
