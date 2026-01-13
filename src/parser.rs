@@ -1,9 +1,9 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 
+use crate::Error;
 use crate::error::ParserError;
 use crate::tokenizer::Token;
 use crate::tokenizer::TokenType;
-use crate::Error;
 
 use serde::Deserialize;
 use serde::Serialize;

@@ -1,5 +1,5 @@
-use crate::regexp::RegExp;
 use crate::Error;
+use crate::regexp::RegExp;
 
 #[derive(Debug)]
 /// A structured representation of a URLPattern matcher, which can be used to

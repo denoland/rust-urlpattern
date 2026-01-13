@@ -20,10 +20,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 
+use crate::canonicalize_and_process::ProcessType;
 use crate::canonicalize_and_process::is_special_scheme;
 use crate::canonicalize_and_process::process_base_url;
 use crate::canonicalize_and_process::special_scheme_default_port;
-use crate::canonicalize_and_process::ProcessType;
 use crate::component::Component;
 use crate::regexp::RegExp;
 
@@ -648,11 +648,11 @@ mod tests {
   use serde::Serialize;
   use url::Url;
 
-  use crate::quirks;
-  use crate::quirks::StringOrInit;
   use crate::UrlPatternComponentResult;
   use crate::UrlPatternOptions;
   use crate::UrlPatternResult;
+  use crate::quirks;
+  use crate::quirks::StringOrInit;
 
   use super::UrlPattern;
   use super::UrlPatternInit;
