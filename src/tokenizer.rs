@@ -41,8 +41,8 @@ pub enum TokenizePolicy {
 }
 
 // Ref: https://wicg.github.io/urlpattern/#tokenizer
-struct Tokenizer {
-  input: Vec<char>,
+struct Tokenizer<'a> {
+  input: &'a str,
   policy: TokenizePolicy,
   token_list: Vec<Token>,
   index: usize,
@@ -50,12 +50,13 @@ struct Tokenizer {
   code_point: Option<char>, // TODO: get rid of Option
 }
 
-impl Tokenizer {
+impl<'a> Tokenizer<'a> {
   // Ref: https://wicg.github.io/urlpattern/#get-the-next-code-point
   #[inline]
   fn get_next_codepoint(&mut self) {
-    self.code_point = Some(self.input[self.next_index]);
-    self.next_index += 1;
+    let next_char = self.input[self.next_index..].chars().next().unwrap();
+    self.code_point = Some(next_char);
+    self.next_index += next_char.len_utf8();
   }
 
   // Ref: https://wicg.github.io/urlpattern/#add-a-token-with-default-position-and-length
@@ -85,7 +86,7 @@ impl Tokenizer {
     value_len: usize,
   ) {
     let range = value_pos..(value_pos + value_len);
-    let value = self.input[range].iter().collect::<String>();
+    let value = self.input[range].to_owned();
     self.token_list.push(Token {
       kind,
       index: self.index,
@@ -127,7 +128,7 @@ pub fn tokenize(
   policy: TokenizePolicy,
 ) -> Result<Vec<Token>, Error> {
   let mut tokenizer = Tokenizer {
-    input: input.chars().collect::<Vec<char>>(),
+    input,
     policy,
     token_list: vec![],
     index: 0,
@@ -318,7 +319,6 @@ pub fn tokenize(
 
     tokenizer.add_token_with_default_pos_and_len(TokenType::Char);
   }
-
   tokenizer.add_token_with_default_len(
     TokenType::End,
     tokenizer.index,
