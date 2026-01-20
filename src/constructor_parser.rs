@@ -25,7 +25,7 @@ enum ConstructorStringParserState {
 // Ref: https://wicg.github.io/urlpattern/#constructor-string-parser
 struct ConstructorStringParser<'a> {
   input: &'a str,
-  token_list: Vec<Token>,
+  token_list: Vec<Token<'a>>,
   result: UrlPatternInit,
   component_start: usize,
   token_index: usize,
