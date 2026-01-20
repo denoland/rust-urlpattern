@@ -15,3 +15,8 @@ icu_properties = "2"
 
 [dev-dependencies]
 serde_json = "1.0.66"
+criterion = "0.5"
+
+[[bench]]
+name = "parse_patterns"
+harness = false
