@@ -69,11 +69,9 @@ impl<R: RegExp> Component<R> {
   pub(crate) fn protocol_component_matches_special_scheme(&self) -> bool {
     const SPECIAL_SCHEMES: [&str; 6] =
       ["ftp", "file", "http", "https", "ws", "wss"];
-    if let Ok(regex) = &self.regexp {
-      for scheme in SPECIAL_SCHEMES {
-        if regex.matches(scheme).is_some() {
-          return true;
-        }
+    for scheme in SPECIAL_SCHEMES {
+      if self.matcher.matches(scheme).is_some() {
+        return true;
       }
     }
     false
