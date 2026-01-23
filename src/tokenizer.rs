@@ -27,10 +27,10 @@ pub enum TokenType {
 
 // Ref: https://wicg.github.io/urlpattern/#token
 #[derive(Debug, Clone)]
-pub struct Token {
+pub struct Token<'a> {
   pub kind: TokenType,
   pub index: usize,
-  pub value: String,
+  pub value: &'a str,
 }
 
 // Ref: https://wicg.github.io/urlpattern/#tokenize-policy
@@ -44,7 +44,7 @@ pub enum TokenizePolicy {
 struct Tokenizer<'a> {
   input: &'a str,
   policy: TokenizePolicy,
-  token_list: Vec<Token>,
+  token_list: Vec<Token<'a>>,
   index: usize,
   next_index: usize,
   code_point: Option<char>, // TODO: get rid of Option
@@ -86,7 +86,7 @@ impl<'a> Tokenizer<'a> {
     value_len: usize,
   ) {
     let range = value_pos..(value_pos + value_len);
-    let value = self.input[range].to_owned();
+    let value = &self.input[range];
     self.token_list.push(Token {
       kind,
       index: self.index,
