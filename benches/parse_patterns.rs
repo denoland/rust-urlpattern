@@ -6,7 +6,7 @@ fn bench_parse_shipping_groups_summary(c: &mut Criterion) {
     b.iter(|| {
       let input = quirks::process_construct_pattern_input(
         black_box(quirks::StringOrInit::String(
-          "component-ShippingGroupsSummary.*.js".to_owned(),
+          "component-ShippingGroupsSummary.*.js".into(),
         )),
         black_box(Some("https://example.test/web/")),
       );
