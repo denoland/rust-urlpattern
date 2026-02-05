@@ -214,7 +214,7 @@ impl UrlPatternInit {
           let baseurl_path = url::quirks::pathname(base_url);
           let slash_index = baseurl_path.rfind('/');
           if let Some(slash_index) = slash_index {
-            let new_pathname = baseurl_path[..=slash_index].to_string();
+            let new_pathname = &baseurl_path[..=slash_index];
             result.pathname =
               Some(format!("{}{}", new_pathname, result.pathname.unwrap()));
           }
