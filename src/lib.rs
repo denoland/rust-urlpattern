@@ -1162,4 +1162,16 @@ mod tests {
     use crate::canonicalize_and_process::canonicalize_pathname;
     assert!(canonicalize_pathname("3�/..").is_ok());
   }
+
+  #[test]
+  fn matcher_matches_doesnt_crash() {
+    let input = "(H\\PH)e:*) (emH\\<N)E*(elNH\\PH)e�{}?u";
+    let base = "example.com";
+    let base_url = Url::parse(base).ok();
+    let init =
+      UrlPatternInit::parse_constructor_string::<regex::Regex>(input, base_url);
+    let _ = init.and_then(|init_res| {
+      UrlPattern::<Regex>::parse(init_res, Default::default())
+    });
+  }
 }
