@@ -24,6 +24,18 @@ pub struct Component<R: RegExp> {
   pub has_regexp_group: bool,
 }
 
+impl<R: RegExp> PartialEq for Component<R> {
+  fn eq(&self, other: &Self) -> bool {
+    self.pattern_string == other.pattern_string
+      && self.group_name_list == other.group_name_list
+      && self.matcher == other.matcher
+      && self.has_regexp_group == other.has_regexp_group
+      && crate::matcher::regexp_result_eq(&self.regexp, &other.regexp)
+  }
+}
+
+impl<R: RegExp> Eq for Component<R> {}
+
 impl<R: RegExp> Component<R> {
   // Ref: https://wicg.github.io/urlpattern/#compile-a-component
   pub(crate) fn compile<F>(

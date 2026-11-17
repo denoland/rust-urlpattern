@@ -3,7 +3,7 @@ use std::fmt;
 use crate::tokenizer::TokenType;
 
 /// A error occurring during URL pattern construction, or matching.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
   BaseUrlRequired,
   BaseUrlWithInit,
@@ -34,7 +34,7 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TokenizerError {
   IncompleteEscapeCode,
   InvalidName,
@@ -55,7 +55,7 @@ impl fmt::Display for TokenizerError {
 
 impl std::error::Error for TokenizerError {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ParserError {
   ExpectedToken(TokenType, TokenType, String),
   DuplicateName(String),

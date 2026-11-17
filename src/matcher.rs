@@ -99,3 +99,51 @@ impl<R: RegExp> Matcher<R> {
     }
   }
 }
+
+pub(crate) fn regexp_result_eq<R: RegExp>(
+  a: &Result<R, Error>,
+  b: &Result<R, Error>,
+) -> bool {
+  match (a, b) {
+    (Ok(a), Ok(b)) => a.pattern_string() == b.pattern_string(),
+    (Err(a), Err(b)) => a == b,
+    _ => false,
+  }
+}
+
+impl<R: RegExp> PartialEq for Matcher<R> {
+  fn eq(&self, other: &Self) -> bool {
+    self.prefix == other.prefix
+      && self.suffix == other.suffix
+      && self.inner == other.inner
+      && self.ignore_case == other.ignore_case
+  }
+}
+
+impl<R: RegExp> Eq for Matcher<R> {}
+
+impl<R: RegExp> PartialEq for InnerMatcher<R> {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::Literal { literal: a }, Self::Literal { literal: b }) => a == b,
+      (
+        Self::SingleCapture {
+          filter: fa,
+          allow_empty: aa,
+        },
+        Self::SingleCapture {
+          filter: fb,
+          allow_empty: ab,
+        },
+      ) => fa == fb && aa == ab,
+      (Self::RegExp { regexp: a }, Self::RegExp { regexp: b }) => {
+        regexp_result_eq(a, b)
+      }
+      (Self::Literal { .. }, _) => false,
+      (Self::SingleCapture { .. }, _) => false,
+      (Self::RegExp { .. }, _) => false,
+    }
+  }
+}
+
+impl<R: RegExp> Eq for InnerMatcher<R> {}

@@ -298,6 +298,21 @@ pub struct UrlPattern<R: RegExp = regex::Regex> {
   pub hash: Component<R>,
 }
 
+impl<R: RegExp> PartialEq for UrlPattern<R> {
+  fn eq(&self, other: &Self) -> bool {
+    self.protocol == other.protocol
+      && self.username == other.username
+      && self.password == other.password
+      && self.hostname == other.hostname
+      && self.port == other.port
+      && self.pathname == other.pathname
+      && self.search == other.search
+      && self.hash == other.hash
+  }
+}
+
+impl<R: RegExp> Eq for UrlPattern<R> {}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UrlPatternMatchInput {
   Init(UrlPatternInit),
@@ -1177,5 +1192,57 @@ mod tests {
     let _ = init.and_then(|init_res| {
       UrlPattern::<Regex>::parse(init_res, Default::default())
     });
+  }
+
+  #[test]
+  fn url_pattern_eq() {
+    fn assert_eq_trait<T: Eq>() {}
+    assert_eq_trait::<UrlPattern>();
+    assert_eq_trait::<UrlPattern<crate::quirks::EcmaRegexp>>();
+
+    let a = <UrlPattern>::parse(
+      UrlPatternInit::parse_constructor_string::<Regex>(
+        "https://example.com:443/users/:id",
+        None,
+      )
+      .unwrap(),
+      Default::default(),
+    )
+    .unwrap();
+    let b = <UrlPattern>::parse(
+      UrlPatternInit::parse_constructor_string::<Regex>(
+        "https://example.com/users/:id",
+        None,
+      )
+      .unwrap(),
+      Default::default(),
+    )
+    .unwrap();
+    assert_eq!(a, b);
+
+    let c = <UrlPattern>::parse(
+      UrlPatternInit::parse_constructor_string::<Regex>(
+        "https://example.com/users/:id",
+        None,
+      )
+      .unwrap(),
+      UrlPatternOptions {
+        ignore_case: true,
+        ..Default::default()
+      },
+    )
+    .unwrap();
+    assert_ne!(a, c);
+
+    let d = <UrlPattern>::parse(
+      UrlPatternInit::parse_constructor_string::<Regex>(
+        "https://example.com/users/:user_id",
+        None,
+      )
+      .unwrap(),
+      Default::default(),
+    )
+    .unwrap();
+    assert_ne!(a, d);
   }
 }
